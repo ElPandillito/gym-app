@@ -7,12 +7,11 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		F7CDD6D32FEDD389003B8E5F /* GYM APP.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "GYM APP.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		F7CDD7012FF2FB3C003B8E5F /* GYM APP.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = "GYM APP.xcodeproj"; sourceTree = "<group>"; };
+		F7CDD6EC2FF2FB36003B8E5F /* GYM APP.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "GYM APP.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		F7CDD6D52FEDD389003B8E5F /* GYM APP */ = {
+		F7CDD6EE2FF2FB36003B8E5F /* GYM APP */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = "GYM APP";
 			sourceTree = "<group>";
@@ -20,7 +19,7 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		F7CDD6D02FEDD389003B8E5F /* Frameworks */ = {
+		F7CDD6E92FF2FB36003B8E5F /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -30,25 +29,18 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		F7CDD6CA2FEDD389003B8E5F = {
+		F7CDD6E32FF2FB36003B8E5F = {
 			isa = PBXGroup;
 			children = (
-				F7CDD6D52FEDD389003B8E5F /* GYM APP */,
-				F7CDD6D42FEDD389003B8E5F /* Products */,
+				F7CDD6EE2FF2FB36003B8E5F /* GYM APP */,
+				F7CDD6ED2FF2FB36003B8E5F /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		F7CDD6D42FEDD389003B8E5F /* Products */ = {
+		F7CDD6ED2FF2FB36003B8E5F /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				F7CDD6D32FEDD389003B8E5F /* GYM APP.app */,
-			);
-			name = Products;
-			sourceTree = "<group>";
-		};
-		F7CDD7022FF2FB3C003B8E5F /* Products */ = {
-			isa = PBXGroup;
-			children = (
+				F7CDD6EC2FF2FB36003B8E5F /* GYM APP.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -56,70 +48,64 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		F7CDD6D22FEDD389003B8E5F /* GYM APP */ = {
+		F7CDD6EB2FF2FB36003B8E5F /* GYM APP */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = F7CDD6E02FEDD38A003B8E5F /* Build configuration list for PBXNativeTarget "GYM APP" */;
+			buildConfigurationList = F7CDD6F92FF2FB38003B8E5F /* Build configuration list for PBXNativeTarget "GYM APP" */;
 			buildPhases = (
-				F7CDD6CF2FEDD389003B8E5F /* Sources */,
-				F7CDD6D02FEDD389003B8E5F /* Frameworks */,
-				F7CDD6D12FEDD389003B8E5F /* Resources */,
+				F7CDD6E82FF2FB36003B8E5F /* Sources */,
+				F7CDD6E92FF2FB36003B8E5F /* Frameworks */,
+				F7CDD6EA2FF2FB36003B8E5F /* Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				F7CDD6D52FEDD389003B8E5F /* GYM APP */,
+				F7CDD6EE2FF2FB36003B8E5F /* GYM APP */,
 			);
 			name = "GYM APP";
 			packageProductDependencies = (
 			);
 			productName = "GYM APP";
-			productReference = F7CDD6D32FEDD389003B8E5F /* GYM APP.app */;
+			productReference = F7CDD6EC2FF2FB36003B8E5F /* GYM APP.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		F7CDD6CB2FEDD389003B8E5F /* Project object */ = {
+		F7CDD6E42FF2FB36003B8E5F /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 2650;
 				LastUpgradeCheck = 2650;
 				TargetAttributes = {
-					F7CDD6D22FEDD389003B8E5F = {
+					F7CDD6EB2FF2FB36003B8E5F = {
 						CreatedOnToolsVersion = 26.5;
 					};
 				};
 			};
-			buildConfigurationList = F7CDD6CE2FEDD389003B8E5F /* Build configuration list for PBXProject "GYM APP" */;
+			buildConfigurationList = F7CDD6E72FF2FB36003B8E5F /* Build configuration list for PBXProject "GYM APP" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 				Base,
 			);
-			mainGroup = F7CDD6CA2FEDD389003B8E5F;
+			mainGroup = F7CDD6E32FF2FB36003B8E5F;
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
-			productRefGroup = F7CDD6D42FEDD389003B8E5F /* Products */;
+			productRefGroup = F7CDD6ED2FF2FB36003B8E5F /* Products */;
 			projectDirPath = "";
-			projectReferences = (
-				{
-					ProductGroup = F7CDD7022FF2FB3C003B8E5F /* Products */;
-					ProjectRef = F7CDD7012FF2FB3C003B8E5F /* GYM APP.xcodeproj */;
-				},
-			);
 			projectRoot = "";
 			targets = (
-				F7CDD6D22FEDD389003B8E5F /* GYM APP */,
+				F7CDD6EB2FF2FB36003B8E5F /* GYM APP */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		F7CDD6D12FEDD389003B8E5F /* Resources */ = {
+		F7CDD6EA2FF2FB36003B8E5F /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -129,7 +115,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		F7CDD6CF2FEDD389003B8E5F /* Sources */ = {
+		F7CDD6E82FF2FB36003B8E5F /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -139,7 +125,7 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		F7CDD6DE2FEDD38A003B8E5F /* Debug */ = {
+		F7CDD6F72FF2FB38003B8E5F /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -201,7 +187,7 @@
 			};
 			name = Debug;
 		};
-		F7CDD6DF2FEDD38A003B8E5F /* Release */ = {
+		F7CDD6F82FF2FB38003B8E5F /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -255,7 +241,7 @@
 			};
 			name = Release;
 		};
-		F7CDD6E12FEDD38A003B8E5F /* Debug */ = {
+		F7CDD6FA2FF2FB38003B8E5F /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -299,7 +285,7 @@
 			};
 			name = Debug;
 		};
-		F7CDD6E22FEDD38A003B8E5F /* Release */ = {
+		F7CDD6FB2FF2FB38003B8E5F /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -346,25 +332,25 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		F7CDD6CE2FEDD389003B8E5F /* Build configuration list for PBXProject "GYM APP" */ = {
+		F7CDD6E72FF2FB36003B8E5F /* Build configuration list for PBXProject "GYM APP" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				F7CDD6DE2FEDD38A003B8E5F /* Debug */,
-				F7CDD6DF2FEDD38A003B8E5F /* Release */,
+				F7CDD6F72FF2FB38003B8E5F /* Debug */,
+				F7CDD6F82FF2FB38003B8E5F /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		F7CDD6E02FEDD38A003B8E5F /* Build configuration list for PBXNativeTarget "GYM APP" */ = {
+		F7CDD6F92FF2FB38003B8E5F /* Build configuration list for PBXNativeTarget "GYM APP" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				F7CDD6E12FEDD38A003B8E5F /* Debug */,
-				F7CDD6E22FEDD38A003B8E5F /* Release */,
+				F7CDD6FA2FF2FB38003B8E5F /* Debug */,
+				F7CDD6FB2FF2FB38003B8E5F /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
-	rootObject = F7CDD6CB2FEDD389003B8E5F /* Project object */;
+	rootObject = F7CDD6E42FF2FB36003B8E5F /* Project object */;
 }
