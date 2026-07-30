@@ -36,7 +36,7 @@ final class CircumferenceMeasurementsViewModel {
 
     // At least one measurement must be entered to save
     var canSave: Bool {
-        allTexts.contains { parseDouble($0) != nil }
+        allTexts.contains { $0.asPositiveDouble != nil }
     }
 
     private var allTexts: [String] {
@@ -71,29 +71,22 @@ final class CircumferenceMeasurementsViewModel {
         guard canSave else { return false }
         let measurements = existingMeasurements ?? CircumferenceMeasurements()
 
-        measurements.neck         = parseDouble(neckText)
-        measurements.shoulders    = parseDouble(shouldersText)
-        measurements.chest        = parseDouble(chestText)
-        measurements.rightArm     = parseDouble(rightArmText)
-        measurements.leftArm      = parseDouble(leftArmText)
-        measurements.rightForearm = parseDouble(rightForearmText)
-        measurements.leftForearm  = parseDouble(leftForearmText)
-        measurements.waist        = parseDouble(waistText)
-        measurements.abdomen      = parseDouble(abdomenText)
-        measurements.hips         = parseDouble(hipsText)
-        measurements.rightThigh   = parseDouble(rightThighText)
-        measurements.leftThigh    = parseDouble(leftThighText)
-        measurements.rightCalf    = parseDouble(rightCalfText)
-        measurements.leftCalf     = parseDouble(leftCalfText)
+        measurements.neck         = neckText.asPositiveDouble
+        measurements.shoulders    = shouldersText.asPositiveDouble
+        measurements.chest        = chestText.asPositiveDouble
+        measurements.rightArm     = rightArmText.asPositiveDouble
+        measurements.leftArm      = leftArmText.asPositiveDouble
+        measurements.rightForearm = rightForearmText.asPositiveDouble
+        measurements.leftForearm  = leftForearmText.asPositiveDouble
+        measurements.waist        = waistText.asPositiveDouble
+        measurements.abdomen      = abdomenText.asPositiveDouble
+        measurements.hips         = hipsText.asPositiveDouble
+        measurements.rightThigh   = rightThighText.asPositiveDouble
+        measurements.leftThigh    = leftThighText.asPositiveDouble
+        measurements.rightCalf    = rightCalfText.asPositiveDouble
+        measurements.leftCalf     = leftCalfText.asPositiveDouble
 
         try? repository.save(measurements, for: checkIn)
         return true
-    }
-
-    private func parseDouble(_ text: String) -> Double? {
-        let cleaned = text.trimmingCharacters(in: .whitespaces)
-                         .replacingOccurrences(of: ",", with: ".")
-        guard !cleaned.isEmpty, let val = Double(cleaned), val > 0 else { return nil }
-        return val
     }
 }

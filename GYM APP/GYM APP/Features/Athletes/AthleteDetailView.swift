@@ -12,6 +12,7 @@ struct AthleteDetailView: View {
 
     enum AthleteSection: String, CaseIterable {
         case info       = "Info"
+        case timeline   = "Timeline"
         case checkIns   = "Check Ins"
         case nutrition  = "Nutrición"
         case routines   = "Rutinas"
@@ -111,6 +112,8 @@ struct AthleteDetailView: View {
         switch selectedSection {
         case .info:
             AthleteInfoSectionView(athlete: athlete)
+        case .timeline:
+            AthleteTimelineView(athlete: athlete)
         case .checkIns:
             CheckInListView(athlete: athlete)
         case .nutrition:

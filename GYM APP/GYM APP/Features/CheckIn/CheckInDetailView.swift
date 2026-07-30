@@ -96,14 +96,20 @@ struct CheckInDetailView: View {
 
     private var photosSection: some View {
         Section {
-            if checkIn.photos.isEmpty {
-                CheckInEmptyRow(label: "Sin fotografías", icon: "camera")
-            } else {
-                let count = checkIn.photos.count
-                MetricRow(
-                    label: "Fotografías",
-                    value: "\(count) \(count == 1 ? "foto" : "fotos")"
-                )
+            NavigationLink {
+                ProgressPhotoGridView(checkIn: checkIn)
+            } label: {
+                if checkIn.photos.isEmpty {
+                    CheckInEmptyRow(label: "Sin fotografías", icon: "camera")
+                } else {
+                    let count = checkIn.photos.count
+                    HStack {
+                        Label("Posing", systemImage: "camera")
+                        Spacer()
+                        Text("\(count) \(count == 1 ? "foto" : "fotos")")
+                            .foregroundStyle(.secondary)
+                    }
+                }
             }
         } header: {
             Label("Fotografías de Posing", systemImage: "camera.fill")

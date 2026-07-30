@@ -11,7 +11,7 @@ final class SkinfoldMeasurementsViewModel {
     // MARK: - Method & context
 
     var method: PlicometryMethod
-    var testerText: String      = ""
+    var testerText: String       = ""
     var caliperBrandText: String = ""
 
     // MARK: - Site text fields (mm)
@@ -133,16 +133,16 @@ final class SkinfoldMeasurementsViewModel {
 
         let m = existingMeasurements ?? SkinfoldMeasurements(method: method)
         m.method       = method
-        m.chest        = parseDouble(chestText)
-        m.midaxillary  = parseDouble(midaxillaryText)
-        m.tricep       = parseDouble(tricepText)
-        m.subscapular  = parseDouble(subscapularText)
-        m.abdomen      = parseDouble(abdomenText)
-        m.suprailiac   = parseDouble(suprailiacText)
-        m.thigh        = parseDouble(thighText)
-        m.calf         = parseDouble(calfText)
-        m.bicep        = parseDouble(bicepText)
-        m.lowerBack    = parseDouble(lowerBackText)
+        m.chest        = chestText.asPositiveDouble
+        m.midaxillary  = midaxillaryText.asPositiveDouble
+        m.tricep       = tricepText.asPositiveDouble
+        m.subscapular  = subscapularText.asPositiveDouble
+        m.abdomen      = abdomenText.asPositiveDouble
+        m.suprailiac   = suprailiacText.asPositiveDouble
+        m.thigh        = thighText.asPositiveDouble
+        m.calf         = calfText.asPositiveDouble
+        m.bicep        = bicepText.asPositiveDouble
+        m.lowerBack    = lowerBackText.asPositiveDouble
         m.tester       = testerText.isEmpty ? nil : testerText
         m.caliperBrand = caliperBrandText.isEmpty ? nil : caliperBrandText
 
@@ -158,24 +158,17 @@ final class SkinfoldMeasurementsViewModel {
 
     private var currentInputs: SkinfoldInputs {
         var i = SkinfoldInputs()
-        i.chest       = parseDouble(chestText)
-        i.midaxillary = parseDouble(midaxillaryText)
-        i.tricep      = parseDouble(tricepText)
-        i.subscapular = parseDouble(subscapularText)
-        i.abdomen     = parseDouble(abdomenText)
-        i.suprailiac  = parseDouble(suprailiacText)
-        i.thigh       = parseDouble(thighText)
-        i.calf        = parseDouble(calfText)
-        i.bicep       = parseDouble(bicepText)
-        i.lowerBack   = parseDouble(lowerBackText)
+        i.chest       = chestText.asPositiveDouble
+        i.midaxillary = midaxillaryText.asPositiveDouble
+        i.tricep      = tricepText.asPositiveDouble
+        i.subscapular = subscapularText.asPositiveDouble
+        i.abdomen     = abdomenText.asPositiveDouble
+        i.suprailiac  = suprailiacText.asPositiveDouble
+        i.thigh       = thighText.asPositiveDouble
+        i.calf        = calfText.asPositiveDouble
+        i.bicep       = bicepText.asPositiveDouble
+        i.lowerBack   = lowerBackText.asPositiveDouble
         return i
-    }
-
-    private func parseDouble(_ text: String) -> Double? {
-        let cleaned = text.trimmingCharacters(in: .whitespaces)
-                          .replacingOccurrences(of: ",", with: ".")
-        guard !cleaned.isEmpty, let val = Double(cleaned), val > 0 else { return nil }
-        return val
     }
 
     private func format(_ v: Double) -> String { String(format: "%.1f", v) }

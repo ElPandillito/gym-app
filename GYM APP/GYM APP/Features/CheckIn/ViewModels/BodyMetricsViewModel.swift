@@ -24,11 +24,11 @@ final class BodyMetricsViewModel {
 
     var isEditing: Bool { existingMetrics != nil }
 
-    var canSave: Bool { parseDouble(weightText) != nil }
+    var canSave: Bool { weightText.asPositiveDouble != nil }
 
     // BMI auto-calculated from weight + athlete height; never entered manually
     var bmi: Double? {
-        guard let weight = parseDouble(weightText),
+        guard let weight = weightText.asPositiveDouble,
               let hcm = athleteHeight, hcm > 0 else { return nil }
         let hm = hcm / 100.0
         return weight / (hm * hm)
@@ -63,23 +63,16 @@ final class BodyMetricsViewModel {
         guard canSave else { return false }
         let metrics = existingMetrics ?? BodyMetrics()
 
-        metrics.bodyWeight         = parseDouble(weightText)
+        metrics.bodyWeight         = weightText.asPositiveDouble
         metrics.bmi                = bmi
-        metrics.bodyFatPercentage  = parseDouble(fatPercentageText)
-        metrics.muscleMass         = parseDouble(muscleMassText)
-        metrics.boneMass           = parseDouble(boneMassText)
-        metrics.waterPercentage    = parseDouble(waterPercentageText)
-        metrics.visceralFatLevel   = parseDouble(visceralFatText)
-        metrics.basalMetabolicRate = parseDouble(basalMetabolicRateText)
+        metrics.bodyFatPercentage  = fatPercentageText.asPositiveDouble
+        metrics.muscleMass         = muscleMassText.asPositiveDouble
+        metrics.boneMass           = boneMassText.asPositiveDouble
+        metrics.waterPercentage    = waterPercentageText.asPositiveDouble
+        metrics.visceralFatLevel   = visceralFatText.asPositiveDouble
+        metrics.basalMetabolicRate = basalMetabolicRateText.asPositiveDouble
 
         try? repository.save(metrics, for: checkIn)
         return true
-    }
-
-    private func parseDouble(_ text: String) -> Double? {
-        let cleaned = text.trimmingCharacters(in: .whitespaces)
-                         .replacingOccurrences(of: ",", with: ".")
-        guard !cleaned.isEmpty, let val = Double(cleaned), val > 0 else { return nil }
-        return val
     }
 }
