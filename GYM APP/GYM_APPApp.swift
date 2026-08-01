@@ -2,22 +2,26 @@
 //  GYM_APPApp.swift
 //  GYM APP
 //
-//  Created by Francisco Alexis Aguirre Guzman on 29/06/26.
-//
 
 import SwiftUI
 import SwiftData
 
 @main
 struct GYM_APPApp: App {
-    var sharedModelContainer: ModelContainer = {
+    let sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            Item.self,
+            Athlete.self,
+            CheckIn.self,
+            BodyMetrics.self,
+            CircumferenceMeasurements.self,
+            SkinfoldMeasurements.self,
+            ProgressPhoto.self,
+            CoachNote.self,
+            AthleteNote.self,
         ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
+        let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
         do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+            return try ModelContainer(for: schema, configurations: [configuration])
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }
@@ -25,7 +29,7 @@ struct GYM_APPApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            MainTabView()
         }
         .modelContainer(sharedModelContainer)
     }
