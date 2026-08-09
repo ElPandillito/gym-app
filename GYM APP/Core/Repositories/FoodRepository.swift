@@ -70,16 +70,25 @@ struct FoodRepository: FoodRepositoryProtocol {
 
     // MARK: - Delete
 
-    /// Deletes the food after verifying it is not used as an ingredient in any recipe.
-    ///
-    /// Business rule: deleting a base food that is part of a recipe would silently
-    /// invalidate the recipe's composition. Callers must remove the food from all
-    /// recipes via RecipeIngredientRepository before deleting.
+    /// Deletes the food after verifying it is not used as an ingredient in any recipe
+    /// or referenced by any MealItem in a nutrition plan.
     func delete(_ food: Food) throws {
-        let allEntries = try context.fetch(FetchDescriptor<RecipeIngredient>())
-        let usages = allEntries.filter { $0.ingredient?.id == food.id }
-        guard usages.isEmpty else {
-            throw FoodError.isUsedAsIngredient(recipeCount: usages.count)
+        // Guard: recipe ingredient usages
+        let allIngredients = try context.fetch(FetchDescriptor<RecipeIngredient>())
+        let ingredientUsages = allIngredients.filter { $0.ingredient?.id == food.id }
+        guard ingredientUsages.isEmpty else {
+            throw FoodError.isUsedAsIngredient(recipeCount: ingredientUsages.count)
+        }
+
+        // Guard: nutrition plan usages (MealItem.food uses nullify — check before deletion)
+        let allItems = try context.fetch(FetchDescriptor<MealItem>())
+        let planIDs = Set(
+            allItems
+                .filter { $0.food?.id == food.id }
+                .compactMap { $0.meal?.nutritionPlan?.id }
+        )
+        guard planIDs.isEmpty else {
+            throw FoodError.isUsedInNutritionPlans(planCount: planIDs.count)
         }
 
         // Remove image files before SwiftData cascade-deletes the FoodImage record.
@@ -175,12 +184,16 @@ struct FoodRepository: FoodRepositoryProtocol {
 
 enum FoodError: LocalizedError {
     case isUsedAsIngredient(recipeCount: Int)
+    case isUsedInNutritionPlans(planCount: Int)
 
     var errorDescription: String? {
         switch self {
         case .isUsedAsIngredient(let count):
             let plural = count == 1 ? "receta" : "recetas"
             return "Este alimento se usa en \(count) \(plural). Elimínalo de todas las recetas antes de borrarlo."
+        case .isUsedInNutritionPlans(let count):
+            let plural = count == 1 ? "plan nutricional" : "planes nutricionales"
+            return "Este alimento se usa en \(count) \(plural). Los datos históricos se conservarán, pero debes confirmar que deseas eliminarlo de la biblioteca."
         }
     }
 }

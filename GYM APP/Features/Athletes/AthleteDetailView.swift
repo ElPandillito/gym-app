@@ -138,11 +138,7 @@ struct AthleteDetailView: View {
         case .checkIns:
             CheckInListView(athlete: athlete)
         case .nutrition:
-            PlaceholderSectionView(
-                title: "Nutrición",
-                icon: "fork.knife",
-                description: "El plan nutricional del atleta aparecerá aquí."
-            )
+            AthleteNutritionView(athlete: athlete)
         case .routines:
             PlaceholderSectionView(
                 title: "Rutinas",

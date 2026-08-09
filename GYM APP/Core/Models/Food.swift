@@ -43,6 +43,10 @@ final class Food {
     var brand: String?
     var tags: [String]
 
+    // Prepared food: number of servings the recipe yields.
+    // nil for ingredients; set by PreparedFoodFormViewModel on save.
+    var servings: Int?
+
     // Future-ready fields: populated when integrating external databases or barcode scanner.
     var externalID: String?
     var barcode: String?

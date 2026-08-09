@@ -21,6 +21,9 @@ struct GYM_APPApp: App {
             Food.self,
             FoodImage.self,
             RecipeIngredient.self,
+            NutritionPlan.self,
+            Meal.self,
+            MealItem.self,
         ])
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
         do {

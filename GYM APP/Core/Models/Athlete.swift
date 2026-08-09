@@ -20,19 +20,23 @@ final class Athlete {
     @Relationship(deleteRule: .cascade, inverse: \CheckIn.athlete)
     var checkIns: [CheckIn]
 
+    @Relationship(deleteRule: .cascade, inverse: \NutritionPlan.athlete)
+    var nutritionPlans: [NutritionPlan]
+
     init(
         name: String,
         gender: Gender = .other,
         birthDate: Date? = nil,
         height: Double? = nil
     ) {
-        self.id          = UUID()
-        self.name        = name
-        self.gender      = gender
-        self.birthDate   = birthDate
-        self.height      = height
-        self.createdAt   = Date()
-        self.updatedAt   = Date()
-        self.checkIns    = []
+        self.id             = UUID()
+        self.name           = name
+        self.gender         = gender
+        self.birthDate      = birthDate
+        self.height         = height
+        self.createdAt      = Date()
+        self.updatedAt      = Date()
+        self.checkIns       = []
+        self.nutritionPlans = []
     }
 }
