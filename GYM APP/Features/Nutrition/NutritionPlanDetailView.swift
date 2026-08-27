@@ -30,6 +30,9 @@ struct NutritionPlanDetailView: View {
             LazyVStack(alignment: .leading, spacing: AppSpacing.lg) {
                 statusRow
                 macrosGrid
+                if plan.hasTargets {
+                    progressSection
+                }
                 if let notes = plan.notes, !notes.isEmpty {
                     notesRow(notes)
                 }
@@ -174,6 +177,51 @@ struct NutritionPlanDetailView: View {
         }
     }
 
+    // MARK: - Progress bars (only shown when hasTargets)
+
+    private var progressSection: some View {
+        let total  = plan.totalMacros
+        let target = plan.targetMacros
+
+        return VStack(alignment: .leading, spacing: AppSpacing.sm) {
+            AppSectionHeader("Progreso diario", icon: "chart.bar.fill")
+
+            VStack(spacing: AppSpacing.md) {
+                MacroProgressRow(
+                    title: "Calorías",
+                    current: total.calories,
+                    target: target.calories,
+                    unit: "kcal",
+                    color: .orange
+                )
+                MacroProgressRow(
+                    title: "Proteína",
+                    current: total.protein,
+                    target: target.protein,
+                    unit: "g",
+                    color: .red
+                )
+                MacroProgressRow(
+                    title: "Carbohidratos",
+                    current: total.carbohydrates,
+                    target: target.carbohydrates,
+                    unit: "g",
+                    color: .yellow
+                )
+                MacroProgressRow(
+                    title: "Grasas",
+                    current: total.fat,
+                    target: target.fat,
+                    unit: "g",
+                    color: .blue
+                )
+            }
+            .padding(AppSpacing.md)
+            .background(AppColors.secondaryBg, in: RoundedRectangle(cornerRadius: AppRadius.md))
+            .appShadow(AppShadows.card)
+        }
+    }
+
     // MARK: - Notes
 
     private func notesRow(_ notes: String) -> some View {
@@ -209,8 +257,7 @@ struct NutritionPlanDetailView: View {
                         onEdit: { editingMeal = meal },
                         onDelete: { viewModel.deleteMeal(meal) },
                         onDeleteItem: { item in viewModel.deleteItem(item) },
-                        onUpdateItem: { item, amt in viewModel.updateItem(item, amountGrams: amt) },
-                        onMoveItems: { from, to in viewModel.moveItems(fromOffsets: from, toOffset: to, in: meal) }
+                        onUpdateItem: { item, amt in viewModel.updateItem(item, amountGrams: amt) }
                     )
                 }
             }
@@ -239,7 +286,6 @@ private struct MealCard: View {
     let onDelete: () -> Void
     let onDeleteItem: (MealItem) -> Void
     let onUpdateItem: (MealItem, Double) -> Void
-    let onMoveItems: (IndexSet, Int) -> Void
 
     @State private var isExpanded = true
 
@@ -267,8 +313,15 @@ private struct MealCard: View {
                         .frame(width: 16)
 
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(meal.name)
-                            .font(.subheadline.weight(.semibold))
+                        HStack(spacing: AppSpacing.xs) {
+                            Text(meal.name)
+                                .font(.subheadline.weight(.semibold))
+                            if let timeText = meal.timeText {
+                                Text(timeText)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
                         let macros = meal.totalMacros
                         if macros.calories > 0 {
                             Text(String(format: "%.0f kcal · P%.0fg · C%.0fg · G%.0fg",
@@ -413,12 +466,21 @@ private struct MealEditSheet: View {
     let meal: Meal
     @State private var name: String
     @State private var notes: String
+    @State private var hasTime: Bool
+    @State private var time: Date
     private let repo: MealRepository
 
     init(meal: Meal, context: ModelContext) {
         self.meal = meal
         _name     = State(initialValue: meal.name)
         _notes    = State(initialValue: meal.notes ?? "")
+        _hasTime  = State(initialValue: meal.time != nil)
+        _time     = State(initialValue: meal.time ?? {
+            var components = Calendar.current.dateComponents([.hour, .minute], from: Date())
+            components.hour   = 8
+            components.minute = 0
+            return Calendar.current.date(from: components) ?? Date()
+        }())
         self.repo = MealRepository(context: context)
     }
 
@@ -427,6 +489,16 @@ private struct MealEditSheet: View {
             Form {
                 Section("Nombre") {
                     TextField("Nombre de la comida", text: $name)
+                }
+                Section("Horario") {
+                    Toggle("Asignar horario", isOn: $hasTime)
+                    if hasTime {
+                        DatePicker(
+                            "Hora",
+                            selection: $time,
+                            displayedComponents: .hourAndMinute
+                        )
+                    }
                 }
                 Section("Notas") {
                     TextField("Notas (opcional)", text: $notes, axis: .vertical)
@@ -447,7 +519,7 @@ private struct MealEditSheet: View {
                         guard !n.isEmpty else { return }
                         let notesVal: String? = notes.trimmingCharacters(in: .whitespaces).isEmpty
                             ? nil : notes.trimmingCharacters(in: .whitespaces)
-                        try? repo.update(meal, name: n, notes: notesVal, time: meal.time)
+                        try? repo.update(meal, name: n, notes: notesVal, time: hasTime ? time : nil)
                         dismiss()
                     }
                     .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)

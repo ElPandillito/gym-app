@@ -35,9 +35,17 @@ protocol FoodRepositoryProtocol {
 
     /// Deletes a Food and its associated image.
     ///
-    /// - Throws: `FoodError.isUsedAsIngredient` if the food appears as an ingredient
-    ///   in any recipe. Remove it from all recipes before deleting.
+    /// - Throws: `FoodError.isUsedAsIngredient` if the food appears in a recipe.
+    /// - Throws: `FoodError.isUsedInNutritionPlans` if MealItems reference this food.
+    ///   Use `forceDelete(_:)` to remove it while preserving historical snapshots.
     func delete(_ food: Food) throws
+
+    /// Removes a Food from the library unconditionally.
+    ///
+    /// Safe because MealItem stores per-100g snapshot values at creation time.
+    /// Existing plans retain their historical macros; only the live Food reference
+    /// in MealItem becomes nil (nullify delete rule).
+    func forceDelete(_ food: Food) throws
 
     /// Fetches a Food by its UUID.
     func fetch(id: UUID) throws -> Food?

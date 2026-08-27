@@ -17,6 +17,7 @@ struct FoodDetailView: View {
     @State private var servings: Int = 1
     @State private var isShowingEditForm = false
     @State private var showDeleteConfirm = false
+    @State private var showForceDeleteConfirm = false
     @State private var deleteError: String?
 
     private var snapshot: FoodSnapshot { food.snapshot() }
@@ -51,6 +52,7 @@ struct FoodDetailView: View {
                 }
             }
         }
+        // Standard delete confirmation
         .confirmationDialog(
             "¿Eliminar \"\(food.name)\"?",
             isPresented: $showDeleteConfirm,
@@ -61,6 +63,18 @@ struct FoodDetailView: View {
         } message: {
             Text("Esta acción no se puede deshacer.")
         }
+        // Force delete confirmation — shown when food is used in nutrition plans
+        .confirmationDialog(
+            "Eliminar \"\(food.name)\" de la biblioteca",
+            isPresented: $showForceDeleteConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("Eliminar de la biblioteca", role: .destructive) { forceDeleteFood() }
+            Button("Cancelar", role: .cancel) {}
+        } message: {
+            Text("Este alimento está siendo utilizado en planes nutricionales. Los planes existentes conservarán sus datos históricos gracias a los snapshots almacenados. Esta acción no se puede deshacer.")
+        }
+        // Generic error alert
         .alert("No se puede eliminar", isPresented: Binding(
             get: { deleteError != nil },
             set: { if !$0 { deleteError = nil } }
@@ -403,6 +417,21 @@ struct FoodDetailView: View {
     private func deleteFood() {
         do {
             try FoodRepository.make(context: modelContext).delete(food)
+            dismiss()
+        } catch let foodErr as FoodError {
+            if case .isUsedInNutritionPlans = foodErr {
+                showForceDeleteConfirm = true
+            } else {
+                deleteError = foodErr.localizedDescription
+            }
+        } catch {
+            deleteError = error.localizedDescription
+        }
+    }
+
+    private func forceDeleteFood() {
+        do {
+            try FoodRepository.make(context: modelContext).forceDelete(food)
             dismiss()
         } catch {
             deleteError = error.localizedDescription

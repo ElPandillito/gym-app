@@ -79,16 +79,6 @@ final class NutritionPlanDetailViewModel {
         }
     }
 
-    func moveItems(fromOffsets: IndexSet, toOffset: Int, in meal: Meal) {
-        var sorted = meal.sortedItems
-        sorted.move(fromOffsets: fromOffsets, toOffset: toOffset)
-        do {
-            try itemRepo.reorder(sorted, in: meal)
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-    }
-
     // MARK: - Plan actions
 
     func activate(_ plan: NutritionPlan, for athlete: Athlete) {

@@ -6,11 +6,12 @@
 import Foundation
 import SwiftData
 
+/// Coordinates mutations on NutritionPlan records.
+/// The UI reads the live list via `athlete.nutritionPlans` directly from SwiftData.
 @Observable
 @MainActor
 final class NutritionPlanListViewModel {
 
-    var plans: [NutritionPlan] = []
     var errorMessage: String?
 
     private let repository: NutritionPlanRepository
@@ -19,36 +20,33 @@ final class NutritionPlanListViewModel {
         self.repository = NutritionPlanRepository(context: context)
     }
 
-    func load(for athlete: Athlete) {
-        do {
-            plans = try repository.fetchAll(for: athlete)
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-    }
-
-    func activate(_ plan: NutritionPlan, for athlete: Athlete) {
+    func activate(_ plan: NutritionPlan) {
         do {
             try repository.activate(plan)
-            load(for: athlete)
         } catch {
             errorMessage = error.localizedDescription
         }
     }
 
-    func deactivate(_ plan: NutritionPlan, for athlete: Athlete) {
+    func deactivate(_ plan: NutritionPlan) {
         do {
             try repository.deactivate(plan)
-            load(for: athlete)
         } catch {
             errorMessage = error.localizedDescription
         }
     }
 
-    func delete(_ plan: NutritionPlan, for athlete: Athlete) {
+    func delete(_ plan: NutritionPlan) {
         do {
             try repository.delete(plan)
-            load(for: athlete)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func duplicate(_ plan: NutritionPlan, for athlete: Athlete) {
+        do {
+            try repository.duplicate(plan, for: athlete)
         } catch {
             errorMessage = error.localizedDescription
         }

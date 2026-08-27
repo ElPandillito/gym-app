@@ -72,15 +72,17 @@ struct FoodRepository: FoodRepositoryProtocol {
 
     /// Deletes the food after verifying it is not used as an ingredient in any recipe
     /// or referenced by any MealItem in a nutrition plan.
+    ///
+    /// - Throws: `FoodError.isUsedAsIngredient` if in a recipe — remove it first.
+    /// - Throws: `FoodError.isUsedInNutritionPlans` if referenced by MealItems.
+    ///   Use `forceDelete(_:)` to proceed; snapshots preserve historical integrity.
     func delete(_ food: Food) throws {
-        // Guard: recipe ingredient usages
         let allIngredients = try context.fetch(FetchDescriptor<RecipeIngredient>())
         let ingredientUsages = allIngredients.filter { $0.ingredient?.id == food.id }
         guard ingredientUsages.isEmpty else {
             throw FoodError.isUsedAsIngredient(recipeCount: ingredientUsages.count)
         }
 
-        // Guard: nutrition plan usages (MealItem.food uses nullify — check before deletion)
         let allItems = try context.fetch(FetchDescriptor<MealItem>())
         let planIDs = Set(
             allItems
@@ -91,14 +93,26 @@ struct FoodRepository: FoodRepositoryProtocol {
             throw FoodError.isUsedInNutritionPlans(planCount: planIDs.count)
         }
 
-        // Remove image files before SwiftData cascade-deletes the FoodImage record.
-        if let image = food.image {
-            try? imageStorage.delete(relativePath: image.originalPath)
-            if let thumbPath = image.thumbnailPath {
-                try? imageStorage.delete(relativePath: thumbPath)
-            }
+        try removeImageFiles(from: food)
+        context.delete(food)
+        try context.save()
+    }
+
+    /// Removes the food from the library unconditionally.
+    ///
+    /// MealItem.food uses SwiftData nullify — the relationship becomes nil on deletion.
+    /// Existing plans retain their historical macros via per-100g snapshot fields.
+    func forceDelete(_ food: Food) throws {
+        // Recipe ingredient check still applies — removing a base food from a recipe
+        // would break its composition. This is not protected by snapshots.
+        let allIngredients = try context.fetch(FetchDescriptor<RecipeIngredient>())
+        let ingredientUsages = allIngredients.filter { $0.ingredient?.id == food.id }
+        guard ingredientUsages.isEmpty else {
+            throw FoodError.isUsedAsIngredient(recipeCount: ingredientUsages.count)
         }
 
+        // MealItem usages are safe to ignore — snapshot values survive food deletion.
+        try removeImageFiles(from: food)
         context.delete(food)
         try context.save()
     }
@@ -178,6 +192,17 @@ struct FoodRepository: FoodRepositoryProtocol {
         food.updatedAt = Date()
         try context.save()
     }
+
+    // MARK: - Private helpers
+
+    private func removeImageFiles(from food: Food) throws {
+        if let image = food.image {
+            try? imageStorage.delete(relativePath: image.originalPath)
+            if let thumbPath = image.thumbnailPath {
+                try? imageStorage.delete(relativePath: thumbPath)
+            }
+        }
+    }
 }
 
 // MARK: - Errors
@@ -193,7 +218,7 @@ enum FoodError: LocalizedError {
             return "Este alimento se usa en \(count) \(plural). Elimínalo de todas las recetas antes de borrarlo."
         case .isUsedInNutritionPlans(let count):
             let plural = count == 1 ? "plan nutricional" : "planes nutricionales"
-            return "Este alimento se usa en \(count) \(plural). Los datos históricos se conservarán, pero debes confirmar que deseas eliminarlo de la biblioteca."
+            return "Este alimento aparece en \(count) \(plural)."
         }
     }
 }

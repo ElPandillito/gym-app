@@ -57,6 +57,23 @@ struct FoodAsyncImageView: View {
             return
         }
 
+        // asset:// paths load from the Asset Catalog — no disk I/O needed.
+        if path.hasPrefix("asset://") {
+            let assetName = String(path.dropFirst("asset://".count))
+            #if os(iOS)
+            if let loaded = UIImage(named: assetName) {
+                PhotoImageCache.shared.store(loaded, for: path)
+                image = loaded
+            }
+            #elseif os(macOS)
+            if let loaded = NSImage(named: assetName) {
+                PhotoImageCache.shared.store(loaded, for: path)
+                image = loaded
+            }
+            #endif
+            return
+        }
+
         isLoading = true
         defer { isLoading = false }
 

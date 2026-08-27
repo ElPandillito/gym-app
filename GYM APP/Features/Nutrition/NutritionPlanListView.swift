@@ -11,23 +11,26 @@ struct NutritionPlanListView: View {
 
     let athlete: Athlete
 
+    /// @Query without predicate guarantees reactive refresh — optional-chaining predicates
+    /// in #Predicate are unreliable at runtime in SwiftData; client-side filter is safer.
+    @Query(sort: [SortDescriptor(\NutritionPlan.startDate, order: .reverse)])
+    private var allPlans: [NutritionPlan]
     @State private var viewModel: NutritionPlanListViewModel
     @State private var isShowingCreateForm = false
     @State private var selectedPlan: NutritionPlan?
+
+    private var plans: [NutritionPlan] {
+        allPlans.filter { $0.athlete?.id == athlete.id }
+    }
 
     init(athlete: Athlete, context: ModelContext) {
         self.athlete = athlete
         _viewModel = State(initialValue: NutritionPlanListViewModel(context: context))
     }
 
-    /// Live from SwiftData relationship — auto-updates when plans change.
-    private var sortedPlans: [NutritionPlan] {
-        athlete.nutritionPlans.sorted { $0.startDate > $1.startDate }
-    }
-
     var body: some View {
         Group {
-            if sortedPlans.isEmpty {
+            if plans.isEmpty {
                 emptyState
             } else {
                 planList
@@ -64,21 +67,29 @@ struct NutritionPlanListView: View {
 
     private var planList: some View {
         List {
-            ForEach(sortedPlans) { plan in
+            ForEach(plans) { plan in
                 PlanRow(plan: plan)
                     .contentShape(Rectangle())
                     .onTapGesture { selectedPlan = plan }
+                    .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                        Button {
+                            viewModel.duplicate(plan, for: athlete)
+                        } label: {
+                            Label("Duplicar", systemImage: "doc.on.doc")
+                        }
+                        .tint(AppColors.info)
+                    }
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                         Button(role: .destructive) {
-                            viewModel.delete(plan, for: athlete)
+                            viewModel.delete(plan)
                         } label: {
                             Label("Eliminar", systemImage: "trash")
                         }
                         Button {
                             if plan.isActive {
-                                viewModel.deactivate(plan, for: athlete)
+                                viewModel.deactivate(plan)
                             } else {
-                                viewModel.activate(plan, for: athlete)
+                                viewModel.activate(plan)
                             }
                         } label: {
                             Label(

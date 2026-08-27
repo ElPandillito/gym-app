@@ -48,8 +48,12 @@ struct MealItemPickerView: View {
                 }
             }
         }
-        .onChange(of: allFoods) { _, newFoods in libraryVM.update(foods: newFoods) }
-        .onAppear { libraryVM.update(foods: allFoods) }
+        .onChange(of: allFoods) { _, newFoods in
+            libraryVM.update(foods: newFoods)
+        }
+        .onAppear {
+            libraryVM.update(foods: allFoods)
+        }
     }
 
     // MARK: - Content

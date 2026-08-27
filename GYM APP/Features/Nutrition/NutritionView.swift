@@ -44,7 +44,6 @@ struct NutritionView: View {
             viewModel.update(foods: newFoods)
         }
         .onAppear {
-            FoodSeeder.seedIfNeeded(context: modelContext)
             viewModel.update(foods: foods)
         }
     }

@@ -4,10 +4,13 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct AthleteQuickActionsView: View {
     let athlete: Athlete
     let latestCheckIn: CheckIn?
+
+    @Environment(\.modelContext) private var modelContext
 
     @State private var showNewCheckIn     = false
     @State private var showBodyMetrics    = false
@@ -16,6 +19,11 @@ struct AthleteQuickActionsView: View {
     @State private var showComparePicker  = false
 
     private var hasCheckIn: Bool { latestCheckIn != nil }
+
+    /// The athlete's currently active nutrition plan, if any.
+    private var activePlan: NutritionPlan? {
+        athlete.nutritionPlans.first(where: { $0.isActive })
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
@@ -101,6 +109,23 @@ struct AthleteQuickActionsView: View {
             } else {
                 actionLabel(label: "Fotografías", icon: "camera.fill", color: .pink, disabled: true)
             }
+
+            // Plan nutricional — opens active plan if one exists, otherwise opens the plan list
+            NavigationLink {
+                if let plan = activePlan {
+                    NutritionPlanDetailView(plan: plan, athlete: athlete, context: modelContext)
+                } else {
+                    NutritionPlanListView(athlete: athlete, context: modelContext)
+                }
+            } label: {
+                actionLabel(
+                    label: "Plan nutricional",
+                    icon: "fork.knife.circle.fill",
+                    color: .mint,
+                    disabled: false
+                )
+            }
+            .buttonStyle(.plain)
         }
     }
 
