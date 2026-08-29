@@ -48,6 +48,7 @@ struct ProgressPhotoGridView: View {
                 viewModel.add(data: data, poseType: pose, capturedAt: date, notes: notes)
             }
         }
+        #if os(iOS)
         .fullScreenCover(isPresented: $viewModel.isShowingViewer) {
             if let selected = viewModel.selectedPhoto {
                 ProgressPhotoViewer(
@@ -58,6 +59,18 @@ struct ProgressPhotoGridView: View {
                 )
             }
         }
+        #else
+        .sheet(isPresented: $viewModel.isShowingViewer) {
+            if let selected = viewModel.selectedPhoto {
+                ProgressPhotoViewer(
+                    photos: viewModel.allPhotos,
+                    initialPhoto: selected,
+                    storage: storage,
+                    onDelete: { viewModel.delete($0) }
+                )
+            }
+        }
+        #endif
         .alert("Error", isPresented: errorBinding) {
             Button("OK") { viewModel.loadState = .idle }
         } message: {

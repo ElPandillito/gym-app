@@ -241,10 +241,12 @@ struct PreparedFoodFormView: View {
             HStack {
                 Text("Ingredientes")
                 Spacer()
+                #if os(iOS)
                 if !viewModel.pendingIngredients.isEmpty {
                     EditButton()
                         .font(.caption)
                 }
+                #endif
             }
         }
     }
@@ -380,7 +382,9 @@ private struct IngredientFormRow: View {
             Spacer()
 
             TextField("0", text: $amountText)
+                #if os(iOS)
                 .keyboardType(.decimalPad)
+                #endif
                 .multilineTextAlignment(.trailing)
                 .frame(width: 60)
                 .onChange(of: amountText) { _, val in

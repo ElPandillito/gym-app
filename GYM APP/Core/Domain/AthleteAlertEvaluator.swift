@@ -48,7 +48,7 @@ enum AthleteAlertEvaluator {
         }
 
         // Negative body fat trend (60-day window, ≥ 3 data points, > 1 pp projected rise)
-        let trendCutoff = calendar.date(byAdding: .day, value: -preferences.trendWindowDays, to: now)!
+        let trendCutoff = calendar.date(byAdding: .day, value: -preferences.trendWindowDays, to: now) ?? now
         let bfPoints: [DataPoint] = sortedCheckIns
             .filter { $0.date >= trendCutoff }
             .compactMap { snap in
@@ -58,7 +58,11 @@ enum AthleteAlertEvaluator {
         if bfPoints.count >= 3 {
             let trend    = Trend.compute(from: bfPoints)
             let spanDays = Double(
-                calendar.dateComponents([.day], from: bfPoints.first!.date, to: bfPoints.last!.date).day ?? 1
+                calendar.dateComponents(
+                    [.day],
+                    from: bfPoints.first?.date ?? now,
+                    to:   bfPoints.last?.date  ?? now
+                ).day ?? 1
             )
             if trend.direction == .rising, trend.slope * spanDays > 1.0 {
                 result.append(AthleteAlert(

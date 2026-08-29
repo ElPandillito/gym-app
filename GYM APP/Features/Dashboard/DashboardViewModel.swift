@@ -144,7 +144,7 @@ final class DashboardViewModel {
             ciByAthlete[aid, default: []].append(ci)
         }
         for key in ciByAthlete.keys {
-            ciByAthlete[key]!.sort { $0.date < $1.date }
+            ciByAthlete[key]?.sort { $0.date < $1.date }
         }
 
         let nameByID: [UUID: String] = Dictionary(uniqueKeysWithValues: athletes.map { ($0.id, $0.name) })
@@ -268,7 +268,7 @@ final class DashboardViewModel {
         athletes: [Athlete],
         ctx: LoadContext
     ) -> [DashboardProgressor] {
-        let progressCutoff = ctx.calendar.date(byAdding: .day, value: -progressWindowDays, to: ctx.now)!
+        let progressCutoff = ctx.calendar.date(byAdding: .day, value: -progressWindowDays, to: ctx.now) ?? ctx.now
         var result: [DashboardProgressor] = []
 
         for athlete in athletes {
@@ -277,7 +277,7 @@ final class DashboardViewModel {
                   let latest = sorted.last,
                   latest.date >= progressCutoff else { continue }
 
-            let base = sorted.last(where: { $0.date < progressCutoff }) ?? sorted.first!
+            guard let base = sorted.last(where: { $0.date < progressCutoff }) ?? sorted.first else { continue }
             guard base.id != latest.id else { continue }
 
             let bw = base.bodyMetrics?.bodyWeight

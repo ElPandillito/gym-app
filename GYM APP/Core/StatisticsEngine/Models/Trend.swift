@@ -36,7 +36,8 @@ extension Trend {
             return .insufficient
         }
         let sorted  = points.sorted { $0.date < $1.date }
-        let origin  = sorted.first!.date
+        // sorted is guaranteed non-empty by the count guard above
+        let origin  = sorted.first?.date ?? Date()
         let xs      = sorted.map { $0.date.timeIntervalSince(origin) / 86_400 }
         let ys      = sorted.map { $0.value }
         let n       = Double(xs.count)

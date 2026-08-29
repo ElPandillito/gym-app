@@ -193,7 +193,7 @@ private struct TimelineEventCell: View {
         }
         .padding(.vertical, AppSpacing.sm)
         .padding(.horizontal, AppSpacing.md)
-        .background(Color(.secondarySystemGroupedBackground))
+        .background(AppColors.secondaryGroupedBg)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 

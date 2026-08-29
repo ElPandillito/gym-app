@@ -94,7 +94,9 @@ struct NutritionPlanFormView: View {
             Text(label)
             Spacer()
             TextField("0", text: text)
+                #if os(iOS)
                 .keyboardType(.decimalPad)
+                #endif
                 .multilineTextAlignment(.trailing)
                 .frame(width: 80)
             Text(unit)

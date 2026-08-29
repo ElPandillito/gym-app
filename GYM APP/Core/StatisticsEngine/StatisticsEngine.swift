@@ -14,7 +14,10 @@ enum StatisticsEngine {
         guard !snapshots.isEmpty else { return .empty(athleteID: athleteID) }
         let sorted = snapshots.sorted { $0.date < $1.date }
 
-        let period = DateInterval(start: sorted.first!.date, end: sorted.last!.date)
+        // sorted is non-empty (guard above); safe to use first/last with nil coalescing
+        let startDate = sorted.first?.date ?? Date()
+        let endDate   = sorted.last?.date  ?? startDate
+        let period    = DateInterval(start: startDate, end: max(startDate, endDate))
         let avgInterval = averageDaysBetween(sorted)
 
         return AthleteStatisticsReport(

@@ -29,6 +29,7 @@ struct FoodImageStorageService: FoodImageStorageServiceProtocol {
         try fileManager.createDirectory(at: dir, withIntermediateDirectories: true)
         let file = dir.appendingPathComponent("image.jpg")
         try data.write(to: file, options: .atomic)
+        protectFile(file)
         return relativePath(for: file)
     }
 
@@ -37,6 +38,7 @@ struct FoodImageStorageService: FoodImageStorageServiceProtocol {
         try fileManager.createDirectory(at: dir, withIntermediateDirectories: true)
         let file = dir.appendingPathComponent("image.jpg")
         try data.write(to: file, options: .atomic)
+        protectFile(file)
         return relativePath(for: file)
     }
 
@@ -120,6 +122,16 @@ struct FoodImageStorageService: FoodImageStorageServiceProtocol {
         guard filePath.hasPrefix(docPath) else { return filePath }
         let rel = String(filePath.dropFirst(docPath.count))
         return rel.hasPrefix("/") ? String(rel.dropFirst()) : rel
+    }
+
+    // MARK: - Security
+
+    /// Applies File Protection (iOS encryption at rest) and excludes the file from
+    /// iCloud / iTunes backups. Both are no-ops on macOS (harmless to call).
+    private func protectFile(_ url: URL) {
+        let nsurl = url as NSURL
+        try? nsurl.setResourceValue(URLFileProtection.completeUnlessOpen, forKey: .fileProtectionKey)
+        try? nsurl.setResourceValue(true, forKey: .isExcludedFromBackupKey)
     }
 }
 

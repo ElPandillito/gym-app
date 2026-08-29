@@ -7,13 +7,14 @@ import SwiftUI
 
 @Observable
 final class AthleteFormViewModel {
-    var name: String = ""
-    var gender: Gender = .other
-    var heightText: String = ""
-    var hasBirthDate: Bool = false
-    var birthDate: Date = Date()
+    var name: String         = ""
+    var gender: Gender       = .other
+    var phase: AthletePhase  = .offSeason
+    var heightText: String   = ""
+    var hasBirthDate: Bool   = false
+    var birthDate: Date      = Date()
 
-    var nameError: String? = nil
+    var nameError: String?   = nil
     var heightError: String? = nil
 
     private let existingAthlete: Athlete?
@@ -30,11 +31,12 @@ final class AthleteFormViewModel {
     init(athlete: Athlete? = nil) {
         self.existingAthlete = athlete
         if let athlete {
-            name       = athlete.name
-            gender     = athlete.gender
+            name         = athlete.name
+            gender       = athlete.gender
+            phase        = athlete.phase
             hasBirthDate = athlete.birthDate != nil
-            birthDate  = athlete.birthDate ?? Date()
-            heightText = athlete.height.map { String(format: "%.1f", $0) } ?? ""
+            birthDate    = athlete.birthDate ?? Date()
+            heightText   = athlete.height.map { String(format: "%.1f", $0) } ?? ""
         }
     }
 
@@ -66,15 +68,17 @@ final class AthleteFormViewModel {
         if let athlete = existingAthlete {
             athlete.name      = name.trimmingCharacters(in: .whitespaces)
             athlete.gender    = gender
+            athlete.phase     = phase
             athlete.birthDate = hasBirthDate ? birthDate : nil
             athlete.height    = parsedHeight
             try? repository.update(athlete)
         } else {
             let athlete = Athlete(
-                name: name.trimmingCharacters(in: .whitespaces),
-                gender: gender,
+                name:      name.trimmingCharacters(in: .whitespaces),
+                gender:    gender,
                 birthDate: hasBirthDate ? birthDate : nil,
-                height: parsedHeight
+                height:    parsedHeight,
+                phase:     phase
             )
             try? repository.add(athlete)
         }

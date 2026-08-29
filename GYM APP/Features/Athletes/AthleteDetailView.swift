@@ -18,8 +18,6 @@ struct AthleteDetailView: View {
         case timeline   = "Timeline"
         case checkIns   = "Check Ins"
         case nutrition  = "Nutrición"
-        case routines   = "Rutinas"
-        case files      = "Archivos"
     }
 
     var body: some View {
@@ -71,12 +69,22 @@ struct AthleteDetailView: View {
                         .foregroundStyle(Color.accentColor)
                 }
 
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(athlete.name)
                     .font(.title3.bold())
-                Text(athlete.gender.displayName)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+
+                HStack(spacing: 6) {
+                    Text(athlete.gender.displayName)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    Label(athlete.phase.displayName, systemImage: athlete.phase.systemImage)
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(Color.accentColor)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 3)
+                        .background(Color.accentColor.opacity(0.12), in: Capsule())
+                }
             }
 
             Spacer()
@@ -139,18 +147,6 @@ struct AthleteDetailView: View {
             CheckInListView(athlete: athlete)
         case .nutrition:
             AthleteNutritionView(athlete: athlete)
-        case .routines:
-            PlaceholderSectionView(
-                title: "Rutinas",
-                icon: "dumbbell.fill",
-                description: "Las rutinas de entrenamiento aparecerán aquí."
-            )
-        case .files:
-            PlaceholderSectionView(
-                title: "Archivos",
-                icon: "folder.fill",
-                description: "Los archivos del atleta aparecerán aquí."
-            )
         }
     }
 }
@@ -200,6 +196,7 @@ private struct AthleteInfoSectionView: View {
             Section("Información Personal") {
                 InfoRow(label: "Nombre completo", value: athlete.name)
                 InfoRow(label: "Género", value: athlete.gender.displayName)
+                InfoRow(label: "Fase", value: athlete.phase.displayName)
                 InfoRow(label: "Fecha de nacimiento", value: birthDateText)
                 InfoRow(label: "Estatura", value: heightText)
             }

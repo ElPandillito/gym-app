@@ -17,7 +17,7 @@ struct ComparisonSummaryView: View {
             }
         }
         .padding(AppSpacing.md)
-        .background(Color(.secondarySystemGroupedBackground))
+        .background(AppColors.secondaryGroupedBg)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 

@@ -124,7 +124,9 @@ struct NutritionView: View {
                 .foregroundStyle(.secondary)
             TextField("Buscar alimento...", text: $viewModel.searchText)
                 .autocorrectionDisabled()
+                #if os(iOS)
                 .textInputAutocapitalization(.never)
+                #endif
             if !viewModel.searchText.isEmpty {
                 Button {
                     viewModel.searchText = ""

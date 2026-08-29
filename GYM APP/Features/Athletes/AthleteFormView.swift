@@ -36,6 +36,14 @@ struct AthleteFormView: View {
                     }
                 }
 
+                Section("Fase de entrenamiento") {
+                    Picker("Fase", selection: $viewModel.phase) {
+                        ForEach(AthletePhase.allCases, id: \.self) { phase in
+                            Label(phase.displayName, systemImage: phase.systemImage).tag(phase)
+                        }
+                    }
+                }
+
                 Section("Medidas") {
                     HStack {
                         TextField("Estatura (cm)", text: $viewModel.heightText)

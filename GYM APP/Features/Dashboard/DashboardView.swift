@@ -30,6 +30,12 @@ struct DashboardView: View {
         .onChange(of: checkIns)  { viewModel.load(athletes: athletes, checkIns: checkIns) }
     }
 
+    // MARK: - Athlete lookup
+
+    private func findAthlete(_ id: UUID) -> Athlete? {
+        athletes.first { $0.id == id }
+    }
+
     // MARK: - 1. Resumen General
 
     private var summarySection: some View {
@@ -97,7 +103,14 @@ struct DashboardView: View {
             } else {
                 cardContainer {
                     ForEach(viewModel.recentCheckIns) { item in
-                        RecentCheckInRow(item: item)
+                        if let athlete = findAthlete(item.athleteID) {
+                            NavigationLink(destination: AthleteDetailView(athlete: athlete)) {
+                                RecentCheckInRow(item: item)
+                            }
+                            .buttonStyle(.plain)
+                        } else {
+                            RecentCheckInRow(item: item)
+                        }
                         if item.id != viewModel.recentCheckIns.last?.id {
                             Divider().padding(.leading, AppSpacing.sm)
                         }
@@ -134,7 +147,14 @@ struct DashboardView: View {
             } else {
                 cardContainer {
                     ForEach(viewModel.alerts) { alert in
-                        AlertRow(alert: alert)
+                        if let athlete = findAthlete(alert.athleteID) {
+                            NavigationLink(destination: AthleteDetailView(athlete: athlete)) {
+                                AlertRow(alert: alert)
+                            }
+                            .buttonStyle(.plain)
+                        } else {
+                            AlertRow(alert: alert)
+                        }
                         if alert.id != viewModel.alerts.last?.id {
                             Divider().padding(.leading, AppSpacing.xl + AppSpacing.sm)
                         }
@@ -159,7 +179,14 @@ struct DashboardView: View {
             } else {
                 cardContainer {
                     ForEach(Array(viewModel.topProgressors.enumerated()), id: \.element.id) { index, prog in
-                        ProgressorRow(progressor: prog, rank: index + 1)
+                        if let athlete = findAthlete(prog.id) {
+                            NavigationLink(destination: AthleteDetailView(athlete: athlete)) {
+                                ProgressorRow(progressor: prog, rank: index + 1)
+                            }
+                            .buttonStyle(.plain)
+                        } else {
+                            ProgressorRow(progressor: prog, rank: index + 1)
+                        }
                         if index < viewModel.topProgressors.count - 1 {
                             Divider().padding(.leading, AppSpacing.xl + AppSpacing.xs)
                         }
@@ -190,7 +217,14 @@ struct DashboardView: View {
             } else {
                 cardContainer {
                     ForEach(viewModel.pendingActions) { action in
-                        PendingActionRow(action: action)
+                        if let athlete = findAthlete(action.athleteID) {
+                            NavigationLink(destination: AthleteDetailView(athlete: athlete)) {
+                                PendingActionRow(action: action)
+                            }
+                            .buttonStyle(.plain)
+                        } else {
+                            PendingActionRow(action: action)
+                        }
                         if action.id != viewModel.pendingActions.last?.id {
                             Divider().padding(.leading, AppSpacing.xl + AppSpacing.sm)
                         }

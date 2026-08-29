@@ -14,14 +14,28 @@ enum AppColors {
     static let brand         = Color("BrandPrimary", bundle: nil)
 
     // MARK: - Semantic backgrounds
-    static let background    = Color(.systemBackground)
-    static let secondaryBg   = Color(.secondarySystemBackground)
-    static let groupedBg     = Color(.systemGroupedBackground)
+    #if canImport(UIKit)
+    static let background         = Color(uiColor: .systemBackground)
+    static let secondaryBg        = Color(uiColor: .secondarySystemBackground)
+    static let groupedBg          = Color(uiColor: .systemGroupedBackground)
+    static let secondaryGroupedBg = Color(uiColor: .secondarySystemGroupedBackground)
+    #else
+    static let background         = Color(nsColor: .windowBackgroundColor)
+    static let secondaryBg        = Color(nsColor: .controlBackgroundColor)
+    static let groupedBg          = Color(nsColor: .windowBackgroundColor)
+    static let secondaryGroupedBg = Color(nsColor: .controlBackgroundColor)
+    #endif
 
     // MARK: - Text
-    static let primaryText   = Color(.label)
-    static let secondaryText = Color(.secondaryLabel)
-    static let tertiaryText  = Color(.tertiaryLabel)
+    #if canImport(UIKit)
+    static let primaryText   = Color(uiColor: .label)
+    static let secondaryText = Color(uiColor: .secondaryLabel)
+    static let tertiaryText  = Color(uiColor: .tertiaryLabel)
+    #else
+    static let primaryText   = Color(nsColor: .labelColor)
+    static let secondaryText = Color(nsColor: .secondaryLabelColor)
+    static let tertiaryText  = Color(nsColor: .tertiaryLabelColor)
+    #endif
 
     // MARK: - Status
     static let success = Color.green
@@ -52,6 +66,10 @@ enum AppColors {
     enum Trend {
         static let rising   = Color.green
         static let falling  = Color.red
-        static let flat     = Color(.secondaryLabel)
+        #if canImport(UIKit)
+        static let flat     = Color(uiColor: .secondaryLabel)
+        #else
+        static let flat     = Color(nsColor: .secondaryLabelColor)
+        #endif
     }
 }

@@ -13,6 +13,7 @@ final class Athlete {
     var birthDate: Date?
     var height: Double?             // centimeters
     var gender: Gender
+    var phase: AthletePhase
     var profilePhotoPath: String?
     var createdAt: Date
     var updatedAt: Date
@@ -27,13 +28,15 @@ final class Athlete {
         name: String,
         gender: Gender = .other,
         birthDate: Date? = nil,
-        height: Double? = nil
+        height: Double? = nil,
+        phase: AthletePhase = .offSeason
     ) {
         self.id             = UUID()
         self.name           = name
         self.gender         = gender
         self.birthDate      = birthDate
         self.height         = height
+        self.phase          = phase
         self.createdAt      = Date()
         self.updatedAt      = Date()
         self.checkIns       = []

@@ -90,7 +90,7 @@ struct ComparisonView: View {
 
             PhotoComparisonSection(comparison: photos)
                 .padding(AppSpacing.md)
-                .background(Color(.secondarySystemGroupedBackground))
+                .background(AppColors.secondaryGroupedBg)
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
     }
@@ -145,7 +145,7 @@ struct ComparisonView: View {
                     .font(.body)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(AppSpacing.sm)
-                    .background(Color(.secondarySystemGroupedBackground))
+                    .background(AppColors.secondaryGroupedBg)
                     .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
         }

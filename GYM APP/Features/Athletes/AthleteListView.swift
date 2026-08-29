@@ -108,9 +108,17 @@ struct AthleteRowView: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(athlete.name)
                     .font(.body.weight(.medium))
-                Text(lastCheckInLabel)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                HStack(spacing: 6) {
+                    Text(lastCheckInLabel)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Label(athlete.phase.displayName, systemImage: athlete.phase.systemImage)
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(Color.accentColor)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.accentColor.opacity(0.10), in: Capsule())
+                }
             }
         }
         .padding(.vertical, 4)

@@ -73,7 +73,9 @@ struct RecipeIngredientPickerView: View {
                 .foregroundStyle(.secondary)
             TextField("Buscar alimento...", text: $searchText)
                 .autocorrectionDisabled()
+                #if os(iOS)
                 .textInputAutocapitalization(.never)
+                #endif
             if !searchText.isEmpty {
                 Button { searchText = "" } label: {
                     Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
@@ -163,7 +165,9 @@ private struct IngredientAmountView: View {
                 Section("Cantidad") {
                     HStack {
                         TextField("0", text: $amountText)
+                            #if os(iOS)
                             .keyboardType(.decimalPad)
+                            #endif
                         if availableUnits.count == 1 {
                             Text(FoodUnit.grams.displayName)
                                 .foregroundStyle(.secondary)

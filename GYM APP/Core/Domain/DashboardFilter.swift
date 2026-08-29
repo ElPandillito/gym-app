@@ -38,10 +38,6 @@ extension DashboardFilter {
     /// Filters `athletes` according to the selected filter.
     /// `checkIns` is required for activity-based filters.
     /// `preferences` supplies the inactivity threshold.
-    ///
-    /// - Note: Phase-based filters (.competition, .bulk, .cut) require
-    ///   `AthletePhase` to be added to the `Athlete` model. Until then they
-    ///   return all athletes unchanged.
     func apply(
         to athletes: [Athlete],
         checkIns: [CheckIn],
@@ -52,18 +48,23 @@ extension DashboardFilter {
             return athletes
 
         case .active:
-            let cutoff  = activeCutoff(preferences: preferences)
+            let cutoff    = activeCutoff(preferences: preferences)
             let activeIDs = activeAthleteIDs(checkIns: checkIns, since: cutoff)
             return athletes.filter { activeIDs.contains($0.id) }
 
         case .inactive:
-            let cutoff   = activeCutoff(preferences: preferences)
+            let cutoff    = activeCutoff(preferences: preferences)
             let activeIDs = activeAthleteIDs(checkIns: checkIns, since: cutoff)
             return athletes.filter { !activeIDs.contains($0.id) }
 
-        case .competition, .bulk, .cut:
-            // Requires Athlete.phase: AthletePhase — activate in a future phase.
-            return athletes
+        case .competition:
+            return athletes.filter { $0.phase.isCompetitionPhase }
+
+        case .bulk:
+            return athletes.filter { $0.phase.isBulkPhase }
+
+        case .cut:
+            return athletes.filter { $0.phase.isCutPhase }
 
         case .custom:
             // Placeholder until coach-defined criteria are implemented.
