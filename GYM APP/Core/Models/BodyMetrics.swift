@@ -20,6 +20,10 @@ final class BodyMetrics {
     var bmi: Double?                    // kg/m²
     var basalMetabolicRate: Double?     // kcal/day
 
+    // ISAK base measurements (Level 1 + 2) — stored here for consistency with body mass
+    var sittingHeight: Double?          // cm — talla sentada
+    var armSpan: Double?                // cm — envergadura
+
     var createdAt: Date
     var updatedAt: Date
 

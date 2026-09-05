@@ -54,6 +54,9 @@ struct AthleteDetailView: View {
         .onChange(of: athlete.checkIns.count) { _, _ in
             overviewViewModel.build(from: athlete)
         }
+        .onChange(of: latestCheckInUpdatedAt) { _, _ in
+            overviewViewModel.build(from: athlete)
+        }
     }
 
     // MARK: - Profile Header
@@ -91,6 +94,11 @@ struct AthleteDetailView: View {
         }
         .padding(.horizontal)
         .padding(.vertical, 14)
+    }
+
+    // Triggers overview rebuild when any existing check-in's data changes.
+    private var latestCheckInUpdatedAt: Date? {
+        athlete.checkIns.max(by: { $0.updatedAt < $1.updatedAt })?.updatedAt
     }
 
     private var initials: String {
@@ -156,6 +164,7 @@ struct AthleteDetailView: View {
 private struct AthleteOverviewSectionView: View {
     let viewModel: AthleteOverviewViewModel
     let athlete: Athlete
+    @Environment(\.modelContext) private var modelContext
 
     var body: some View {
         ScrollView {
@@ -170,8 +179,18 @@ private struct AthleteOverviewSectionView: View {
 
                 AthleteProgressSummaryView(summary: viewModel.progressSummary)
 
+                if let report = viewModel.statisticsReport {
+                    AthleteTrendsSectionView(report: report)
+                }
+
                 if !viewModel.alerts.isEmpty {
                     AthleteAlertsView(alerts: viewModel.alerts)
+                }
+
+                AthleteNotesCardView(latestCheckIn: viewModel.latestCheckIn)
+
+                if let activePlan = athlete.nutritionPlans.first(where: { $0.isActive }) {
+                    AthleteActivePlanCard(plan: activePlan, athlete: athlete)
                 }
 
                 AthleteQuickActionsView(
@@ -182,6 +201,75 @@ private struct AthleteOverviewSectionView: View {
             .padding(.horizontal, AppSpacing.base)
             .padding(.vertical, AppSpacing.base)
             .padding(.bottom, AppSpacing.xxxl)
+        }
+    }
+}
+
+// MARK: - Active Nutrition Plan Card
+
+private struct AthleteActivePlanCard: View {
+    let plan: NutritionPlan
+    let athlete: Athlete
+    @Environment(\.modelContext) private var modelContext
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+            AppSectionHeader("Plan Nutricional Activo", icon: "fork.knife.circle.fill")
+
+            NavigationLink {
+                NutritionPlanDetailView(plan: plan, athlete: athlete, context: modelContext)
+            } label: {
+                VStack(alignment: .leading, spacing: AppSpacing.md) {
+                    Text(plan.name)
+                        .font(AppTypography.subheadline.weight(.semibold))
+                        .foregroundStyle(AppColors.primaryText)
+
+                    if plan.hasTargets {
+                        macroGrid
+                    }
+
+                    HStack {
+                        Spacer()
+                        Label("Ver plan completo", systemImage: "chevron.right")
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppColors.accent)
+                    }
+                }
+                .padding(AppSpacing.base)
+                .background(AppColors.secondaryBg, in: RoundedRectangle(cornerRadius: AppRadius.lg))
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private var macroColumns: [(value: String, label: String)] {
+        let t = plan.targetMacros
+        var cols: [(value: String, label: String)] = []
+        if t.calories      > 0 { cols.append((String(format: "%.0f",  t.calories),      "kcal"))  }
+        if t.protein       > 0 { cols.append((String(format: "%.0fg", t.protein),       "Prot"))  }
+        if t.carbohydrates > 0 { cols.append((String(format: "%.0fg", t.carbohydrates), "Carbs")) }
+        if t.fat           > 0 { cols.append((String(format: "%.0fg", t.fat),           "Grasa")) }
+        return cols
+    }
+
+    @ViewBuilder
+    private var macroGrid: some View {
+        let cols = macroColumns
+        if !cols.isEmpty {
+            HStack(spacing: 0) {
+                ForEach(cols.indices, id: \.self) { idx in
+                    if idx > 0 { Divider().frame(height: 28) }
+                    VStack(spacing: 2) {
+                        Text(cols[idx].value)
+                            .font(AppTypography.footnote.weight(.semibold).monospacedDigit())
+                            .foregroundStyle(AppColors.primaryText)
+                        Text(cols[idx].label)
+                            .font(AppTypography.caption2)
+                            .foregroundStyle(AppColors.secondaryText)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+            }
         }
     }
 }

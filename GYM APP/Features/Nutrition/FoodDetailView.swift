@@ -179,7 +179,7 @@ struct FoodDetailView: View {
                 TextField("Cantidad", value: $amount, format: .number)
                     .font(.title3.weight(.semibold))
                     .multilineTextAlignment(.center)
-                    .keyboardType(.decimalPad)
+                    .decimalKeyboard()
                     .frame(minWidth: 80)
 
                 Button { adjustAmount(+10) } label: {

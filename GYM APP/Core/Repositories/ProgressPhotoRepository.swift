@@ -32,7 +32,7 @@ struct ProgressPhotoRepository: ProgressPhotoRepositoryProtocol {
         )
     }
 
-    // MARK: - Add
+    // MARK: - Add (standard — inserts + saves immediately)
 
     func add(
         data: Data,
@@ -66,6 +66,45 @@ struct ProgressPhotoRepository: ProgressPhotoRepositoryProtocol {
         checkIn.updatedAt = Date()
         try context.save()
         return photo
+    }
+
+    // MARK: - Prepare-only (used by CheckInWorkflowViewModel two-phase save)
+    //
+    // Writes the image file and creates the ProgressPhoto record in memory.
+    // Does NOT insert into context. Does NOT call context.save().
+    //
+    // The caller (CheckInWorkflowViewModel) must:
+    //   1. Append the returned relativePath to its rollback journal immediately.
+    //   2. Later set photo.checkIn and call context.insert(photo) in Phase C.
+    //   3. Call context.save() once as the single final commit.
+    //
+    // If any subsequent phase fails, the caller deletes the written file using
+    // the relativePath and calls context.rollback() to undo pending inserts.
+    func prepareNewPhoto(
+        data: Data,
+        poseType: PoseType,
+        sortOrder: Int,
+        capturedAt: Date,
+        notes: String?,
+        athleteID: UUID,
+        checkInID: UUID
+    ) throws -> (photo: ProgressPhoto, relativePath: String) {
+        let photo = ProgressPhoto(
+            poseType: poseType,
+            originalPath: "",
+            sortOrder: sortOrder,
+            capturedAt: capturedAt
+        )
+        photo.notes = notes
+
+        let relativePath = try storage.saveOriginal(
+            data: data,
+            athleteID: athleteID,
+            checkInID: checkInID,
+            photoID: photo.id
+        )
+        photo.originalPath = relativePath
+        return (photo, relativePath)
     }
 
     // MARK: - Update

@@ -146,7 +146,7 @@ private struct MealItemAmountView: View {
                 Section("Cantidad") {
                     HStack {
                         TextField("100", text: $amountText)
-                            .keyboardType(.decimalPad)
+                            .decimalKeyboard()
                         Text("gramos")
                             .foregroundStyle(.secondary)
                     }

@@ -23,6 +23,10 @@ final class SkinfoldMeasurements {
     var bicep: Double?
     var lowerBack: Double?
 
+    // ISAK-specific skinfold sites (distinct from the generic `suprailiac` used by JP/Parrillo)
+    var iliacCrest: Double?     // mm — cresta ilíaca ISAK (oblique fold, superior to crest)
+    var supraspinale: Double?   // mm — supraespinal ISAK (ASIS → anterior axillary intersection)
+
     // Stored results — immutable once calculated to preserve historical accuracy
     var bodyDensity: Double?
     var estimatedBodyFatPercentage: Double?

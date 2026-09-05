@@ -13,6 +13,7 @@ struct CircumferenceMeasurementsFormView: View {
     let checkIn: CheckIn
 
     @State private var viewModel: CircumferenceMeasurementsViewModel
+    @State private var saveError: String? = nil
 
     init(checkIn: CheckIn) {
         self.checkIn = checkIn
@@ -61,10 +62,22 @@ struct CircumferenceMeasurementsFormView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Guardar") {
                         let repository = CircumferenceMeasurementsRepository(context: context)
-                        if viewModel.save(for: checkIn, using: repository) { dismiss() }
+                        do {
+                            if try viewModel.save(for: checkIn, using: repository) { dismiss() }
+                        } catch {
+                            saveError = "No se pudo guardar las medidas. Inténtalo de nuevo."
+                        }
                     }
                     .disabled(!viewModel.canSave)
                 }
+            }
+            .alert("Error al guardar", isPresented: Binding(
+                get: { saveError != nil },
+                set: { if !$0 { saveError = nil } }
+            )) {
+                Button("Aceptar", role: .cancel) {}
+            } message: {
+                Text(saveError ?? "")
             }
         }
     }

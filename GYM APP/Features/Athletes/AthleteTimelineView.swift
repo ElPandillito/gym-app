@@ -32,6 +32,9 @@ struct AthleteTimelineView: View {
         .onChange(of: athlete.checkIns.count) { _, _ in
             viewModel.build(from: athlete.checkIns)
         }
+        .onChange(of: latestCheckInUpdatedAt) { _, _ in
+            viewModel.build(from: athlete.checkIns)
+        }
         .sheet(item: $bodyMetricsCheckIn)    { BodyMetricsFormView(checkIn: $0) }
         .sheet(item: $circumferencesCheckIn) { CircumferenceMeasurementsFormView(checkIn: $0) }
         .sheet(item: $skinfoldsCheckIn)      { SkinfoldMeasurementsFormView(checkIn: $0) }
@@ -170,6 +173,11 @@ struct AthleteTimelineView: View {
                 .padding(.horizontal, AppSpacing.xl)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    // Triggers timeline rebuild when any existing check-in's data changes.
+    private var latestCheckInUpdatedAt: Date? {
+        athlete.checkIns.max(by: { $0.updatedAt < $1.updatedAt })?.updatedAt
     }
 
     // MARK: - Helpers

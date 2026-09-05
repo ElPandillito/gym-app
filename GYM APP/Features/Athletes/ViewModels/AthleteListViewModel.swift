@@ -12,7 +12,7 @@ enum AthleteSortOrder: String, CaseIterable {
     case oldest          = "Más antiguos"
 }
 
-@Observable
+@MainActor @Observable
 final class AthleteListViewModel {
     var searchText: String = ""
     var sortOrder: AthleteSortOrder = .nameAscending

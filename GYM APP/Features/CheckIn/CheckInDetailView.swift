@@ -72,7 +72,7 @@ struct CheckInDetailView: View {
         Section {
             if let metrics = checkIn.bodyMetrics {
                 if let w = metrics.bodyWeight {
-                    MetricRow(label: "Peso corporal",    value: String(format: "%.2f kg", w))
+                    MetricRow(label: "Peso corporal",    value: String(format: "%.1f kg", w))
                 }
                 if let bmi = metrics.bmi {
                     MetricRow(label: "IMC",              value: String(format: "%.1f kg/m²", bmi))
@@ -81,7 +81,7 @@ struct CheckInDetailView: View {
                     MetricRow(label: "% Grasa corporal", value: String(format: "%.1f%%", f))
                 }
                 if let m = metrics.muscleMass {
-                    MetricRow(label: "Masa muscular",    value: String(format: "%.2f kg", m))
+                    MetricRow(label: "Masa muscular",    value: String(format: "%.1f kg", m))
                 }
                 if let wt = metrics.waterPercentage {
                     MetricRow(label: "Agua corporal",    value: String(format: "%.1f%%", wt))

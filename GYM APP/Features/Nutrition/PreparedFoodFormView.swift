@@ -332,14 +332,14 @@ struct PreparedFoodFormView: View {
         if provider.hasItemConformingToTypeIdentifier("public.image") {
             _ = provider.loadDataRepresentation(forTypeIdentifier: "public.image") { data, _ in
                 guard let data else { return }
-                DispatchQueue.main.async { viewModel.applyImageData(data) }
+                Task { @MainActor in viewModel.applyImageData(data) }
             }
         } else if provider.hasItemConformingToTypeIdentifier("public.file-url") {
             _ = provider.loadDataRepresentation(forTypeIdentifier: "public.file-url") { data, _ in
                 guard let data,
                       let url = URL(dataRepresentation: data, relativeTo: nil, isAbsolute: true),
                       let imageData = try? Data(contentsOf: url) else { return }
-                DispatchQueue.main.async { viewModel.applyImageData(imageData) }
+                Task { @MainActor in viewModel.applyImageData(imageData) }
             }
         }
         return true

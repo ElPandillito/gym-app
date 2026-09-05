@@ -9,8 +9,6 @@ import OSLog
 
 enum FoodSeeder {
 
-    private static let log = Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.gymapp", category: "FoodSeeder")
-
     /// Incrementally inserts any catalog food whose externalID is not yet stored.
     /// Safe to call on every launch — skips foods that already exist.
     static func seedIfNeeded(context: ModelContext) {
@@ -23,7 +21,7 @@ enum FoodSeeder {
         do {
             existing = try context.fetch(systemDescriptor)
         } catch {
-            log.error("seedIfNeeded: fetch failed — \(error.localizedDescription). Seeder aborted.")
+            AppLogger.app.error("seedIfNeeded: fetch failed — \(error.localizedDescription, privacy: .private). Seeder aborted.")
             return
         }
 
@@ -37,15 +35,15 @@ enum FoodSeeder {
         }
 
         guard inserted > 0 else {
-            log.debug("seedIfNeeded: catalog up to date (\(existing.count) system foods).")
+            AppLogger.app.debug("seedIfNeeded: catalog up to date (\(existing.count) system foods).")
             return
         }
 
         do {
             try context.save()
-            log.debug("seedIfNeeded: inserted \(inserted) foods. Total system=\(existing.count + inserted).")
+            AppLogger.app.debug("seedIfNeeded: inserted \(inserted) foods. Total system=\(existing.count + inserted).")
         } catch {
-            log.error("seedIfNeeded: save failed — \(error.localizedDescription). \(inserted) foods NOT persisted.")
+            AppLogger.app.error("seedIfNeeded: save failed — \(error.localizedDescription, privacy: .private). \(inserted) foods NOT persisted.")
         }
     }
 

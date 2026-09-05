@@ -16,6 +16,7 @@ struct CheckInFormView: View {
     @State private var date: Date
     @State private var coachNoteText: String
     @State private var athleteNoteText: String
+    @State private var saveError: String?
 
     // Create mode — only captures date; all other fields remain nil
     init(athlete: Athlete) {
@@ -75,32 +76,46 @@ struct CheckInFormView: View {
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
+            .alert("Error al guardar", isPresented: Binding(
+                get: { saveError != nil },
+                set: { if !$0 { saveError = nil } }
+            )) {
+                Button("Aceptar", role: .cancel) { saveError = nil }
+            } message: {
+                Text(saveError ?? "")
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancelar") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Guardar") {
-                        save()
-                        dismiss()
+                        do {
+                            try performSave()
+                            dismiss()
+                        } catch {
+                            saveError = "No se pudieron guardar los datos. Inténtalo de nuevo."
+                        }
                     }
                 }
             }
         }
     }
 
-    private func save() {
+    private func performSave() throws {
         let repository = CheckInRepository(context: context)
         if let checkIn {
             checkIn.date = date
-            try? repository.saveNotes(
+            try repository.saveNotes(
                 coachText:   coachNoteText,
                 athleteText: athleteNoteText,
                 for:         checkIn
             )
         } else if let athlete {
             let newCheckIn = CheckIn(date: date)
-            try? repository.add(newCheckIn, to: athlete)
+            try repository.add(newCheckIn, to: athlete)
         }
     }
 }
+
+

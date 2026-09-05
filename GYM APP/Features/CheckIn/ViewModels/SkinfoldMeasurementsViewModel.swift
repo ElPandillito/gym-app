@@ -5,7 +5,7 @@
 
 import SwiftUI
 
-@Observable
+@MainActor @Observable
 final class SkinfoldMeasurementsViewModel {
 
     // MARK: - Method & context
@@ -27,12 +27,16 @@ final class SkinfoldMeasurementsViewModel {
     var bicepText: String       = ""
     var lowerBackText: String   = ""
 
+    // ISAK-specific sites (anatomically distinct from suprailiac above)
+    var iliacCrestText: String  = ""   // Cresta ilíaca ISAK
+    var supraspinaleText: String = ""  // Supraespinal ISAK
+
     // MARK: - Private
 
     private let existingMeasurements: SkinfoldMeasurements?
     private let gender: Gender
     private let age: Double          // years
-    private let bodyWeightKg: Double?
+    var bodyWeightKg: Double?        // updatable so workflow can sync body weight for Parrillo
 
     var isEditing: Bool { existingMeasurements != nil }
 
@@ -51,17 +55,19 @@ final class SkinfoldMeasurementsViewModel {
         self.method               = measurements?.method ?? .jacksonPollockSeven
 
         guard let m = measurements else { return }
-        chestText       = m.chest.map       { format($0) } ?? ""
-        midaxillaryText = m.midaxillary.map { format($0) } ?? ""
-        tricepText      = m.tricep.map      { format($0) } ?? ""
-        subscapularText = m.subscapular.map { format($0) } ?? ""
-        abdomenText     = m.abdomen.map     { format($0) } ?? ""
-        suprailiacText  = m.suprailiac.map  { format($0) } ?? ""
-        thighText       = m.thigh.map       { format($0) } ?? ""
-        calfText        = m.calf.map        { format($0) } ?? ""
-        bicepText       = m.bicep.map       { format($0) } ?? ""
-        lowerBackText   = m.lowerBack.map   { format($0) } ?? ""
-        testerText      = m.tester ?? ""
+        chestText        = m.chest.map        { format($0) } ?? ""
+        midaxillaryText  = m.midaxillary.map  { format($0) } ?? ""
+        tricepText       = m.tricep.map       { format($0) } ?? ""
+        subscapularText  = m.subscapular.map  { format($0) } ?? ""
+        abdomenText      = m.abdomen.map      { format($0) } ?? ""
+        suprailiacText   = m.suprailiac.map   { format($0) } ?? ""
+        thighText        = m.thigh.map        { format($0) } ?? ""
+        calfText         = m.calf.map         { format($0) } ?? ""
+        bicepText        = m.bicep.map        { format($0) } ?? ""
+        lowerBackText    = m.lowerBack.map    { format($0) } ?? ""
+        iliacCrestText   = m.iliacCrest.map   { format($0) } ?? ""
+        supraspinaleText = m.supraspinale.map { format($0) } ?? ""
+        testerText       = m.tester ?? ""
         caliperBrandText = m.caliperBrand ?? ""
     }
 
@@ -110,6 +116,32 @@ final class SkinfoldMeasurementsViewModel {
         }
     }
 
+    // MARK: - ISAK 8-site labels (separate from formula-based requiredSiteLabels)
+
+    var requiredISAKSiteLabels: [(label: String, binding: WritableKeyPath<SkinfoldMeasurementsViewModel, String>)] {
+        [
+            ("Tríceps",            \.tricepText),
+            ("Subescapular",       \.subscapularText),
+            ("Bíceps",             \.bicepText),
+            ("Cresta ilíaca",      \.iliacCrestText),
+            ("Supraespinal",       \.supraspinaleText),
+            ("Abdominal",          \.abdomenText),
+            ("Muslo anterior",     \.thighText),
+            ("Pantorrilla medial", \.calfText),
+        ]
+    }
+
+    var hasISAKSkinfolds: Bool {
+        requiredISAKSiteLabels.contains { $0.binding != \.iliacCrestText && $0.binding != \.supraspinaleText
+            ? self[keyPath: $0.binding].asPositiveDouble != nil
+            : true
+        } && (iliacCrestText.asPositiveDouble != nil || supraspinaleText.asPositiveDouble != nil)
+    }
+
+    var filledISAKSiteCount: Int {
+        requiredISAKSiteLabels.compactMap { self[keyPath: $0.binding].asPositiveDouble }.count
+    }
+
     // MARK: - Live calculation
 
     var calculationResult: SkinfoldCalculator.Result? {
@@ -126,12 +158,41 @@ final class SkinfoldMeasurementsViewModel {
         calculationResult != nil
     }
 
-    // MARK: - Save
+    // MARK: - Save (standalone form — commits immediately)
 
-    func save(for checkIn: CheckIn, using repository: SkinfoldMeasurementsRepository) -> Bool {
+    // Returns true on success.
+    // Throws on repository failure so the caller (CheckInWorkflowViewModel) can handle it.
+    @discardableResult
+    func save(for checkIn: CheckIn, using repository: SkinfoldMeasurementsRepository) throws -> Bool {
         guard let result = calculationResult else { return false }
-
         let m = existingMeasurements ?? SkinfoldMeasurements(method: method)
+        applyFields(to: m, result: result)
+        try repository.save(m, for: checkIn)
+        return true
+    }
+
+    // MARK: - Insert-only (workflow creation path — no commit)
+
+    // allowWithoutFormula: pass true for ISAK profiles, where calculationResult is nil
+    // because ISAK site sets don't map to any supported formula. The raw site measurements
+    // must still be persisted; bodyDensity/estimatedBodyFatPercentage remain nil.
+    @discardableResult
+    func insertRecord(
+        for checkIn: CheckIn,
+        using repository: SkinfoldMeasurementsRepository,
+        allowWithoutFormula: Bool = false
+    ) -> Bool {
+        let result = calculationResult
+        guard result != nil || allowWithoutFormula else { return false }
+        let m = existingMeasurements ?? SkinfoldMeasurements(method: method)
+        applyFields(to: m, result: result)
+        repository.insertNew(m, for: checkIn)
+        return true
+    }
+
+    // MARK: - Helpers
+
+    private func applyFields(to m: SkinfoldMeasurements, result: SkinfoldCalculator.Result?) {
         m.method       = method
         m.chest        = chestText.asPositiveDouble
         m.midaxillary  = midaxillaryText.asPositiveDouble
@@ -143,18 +204,13 @@ final class SkinfoldMeasurementsViewModel {
         m.calf         = calfText.asPositiveDouble
         m.bicep        = bicepText.asPositiveDouble
         m.lowerBack    = lowerBackText.asPositiveDouble
+        m.iliacCrest   = iliacCrestText.asPositiveDouble
+        m.supraspinale = supraspinaleText.asPositiveDouble
         m.tester       = testerText.isEmpty ? nil : testerText
         m.caliperBrand = caliperBrandText.isEmpty ? nil : caliperBrandText
-
-        // Store immutable calculated results
-        m.bodyDensity               = result.bodyDensity
-        m.estimatedBodyFatPercentage = result.bodyFatPercentage
-
-        try? repository.save(m, for: checkIn)
-        return true
+        m.bodyDensity               = result?.bodyDensity
+        m.estimatedBodyFatPercentage = result?.bodyFatPercentage
     }
-
-    // MARK: - Helpers
 
     private var currentInputs: SkinfoldInputs {
         var i = SkinfoldInputs()

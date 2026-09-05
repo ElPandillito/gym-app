@@ -415,7 +415,7 @@ private struct MealItemRow: View {
             if isEditing {
                 HStack(spacing: 4) {
                     TextField("g", text: $amountText)
-                        .keyboardType(.decimalPad)
+                        .decimalKeyboard()
                         .multilineTextAlignment(.trailing)
                         .frame(width: 50)
                     Text("g")

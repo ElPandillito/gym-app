@@ -4,8 +4,9 @@
 //
 
 import SwiftUI
+import OSLog
 
-@Observable
+@MainActor @Observable
 final class AthleteFormViewModel {
     var name: String         = ""
     var gender: Gender       = .other
@@ -16,6 +17,7 @@ final class AthleteFormViewModel {
 
     var nameError: String?   = nil
     var heightError: String? = nil
+    var saveError: String?   = nil
 
     private let existingAthlete: Athlete?
 
@@ -54,34 +56,41 @@ final class AthleteFormViewModel {
         }
     }
 
-    // Returns true on success
+    // Returns true on success. Exposes saveError for the UI.
     func save(using repository: AthleteRepository) -> Bool {
         validateName()
         validateHeight()
         guard canSave else { return false }
+        saveError = nil
 
         let parsedHeight: Double? = {
             guard !heightText.isEmpty else { return nil }
             return Double(heightText.replacingOccurrences(of: ",", with: "."))
         }()
 
-        if let athlete = existingAthlete {
-            athlete.name      = name.trimmingCharacters(in: .whitespaces)
-            athlete.gender    = gender
-            athlete.phase     = phase
-            athlete.birthDate = hasBirthDate ? birthDate : nil
-            athlete.height    = parsedHeight
-            try? repository.update(athlete)
-        } else {
-            let athlete = Athlete(
-                name:      name.trimmingCharacters(in: .whitespaces),
-                gender:    gender,
-                birthDate: hasBirthDate ? birthDate : nil,
-                height:    parsedHeight,
-                phase:     phase
-            )
-            try? repository.add(athlete)
+        do {
+            if let athlete = existingAthlete {
+                athlete.name      = name.trimmingCharacters(in: .whitespaces)
+                athlete.gender    = gender
+                athlete.phase     = phase
+                athlete.birthDate = hasBirthDate ? birthDate : nil
+                athlete.height    = parsedHeight
+                try repository.update(athlete)
+            } else {
+                let athlete = Athlete(
+                    name:      name.trimmingCharacters(in: .whitespaces),
+                    gender:    gender,
+                    birthDate: hasBirthDate ? birthDate : nil,
+                    height:    parsedHeight,
+                    phase:     phase
+                )
+                try repository.add(athlete)
+            }
+            return true
+        } catch {
+            saveError = "No se pudo guardar el atleta. Inténtalo de nuevo."
+            AppLogger.persistence.error("AthleteFormViewModel save failed")
+            return false
         }
-        return true
     }
 }

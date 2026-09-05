@@ -33,4 +33,17 @@ protocol PhotoStorageServiceProtocol {
 
     /// Deletes any file inside original/ and thumbnail/ whose UUID stem is NOT in `keepingIDs`.
     func deleteOrphans(athleteID: UUID, checkInID: UUID, keepingIDs: Set<UUID>) throws
+
+    /// Global orphan sweep: enumerates every .jpg file under the Athletes/ root and
+    /// deletes any whose relative path is NOT in `knownRelativePaths`.
+    ///
+    /// Safety contract:
+    ///   - Only deletes files within the Athletes/ subdirectory of Documents/.
+    ///   - Only deletes .jpg files; directories and other file types are never touched.
+    ///   - A file whose path IS in `knownRelativePaths` is always preserved.
+    ///   - Individual removal errors are swallowed; the sweep continues for other files.
+    ///
+    /// Returns the count of successfully removed files.
+    @discardableResult
+    func sweepOrphanFiles(knownRelativePaths: Set<String>) -> Int
 }

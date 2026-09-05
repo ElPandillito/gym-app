@@ -6,6 +6,7 @@
 import Foundation
 import SwiftUI
 import SwiftData
+import OSLog
 
 #if os(iOS)
 import UIKit
@@ -91,14 +92,16 @@ final class PreparedFoodFormViewModel {
     // MARK: - Private
 
     private let mode: Mode
+    private let context: ModelContext
     private let foodRepository: FoodRepository
     private let ingredientRepository: RecipeIngredientRepository
 
     // MARK: - Init
 
     init(mode: Mode, context: ModelContext) {
-        self.mode = mode
-        self.foodRepository = FoodRepository.make(context: context)
+        self.mode                 = mode
+        self.context              = context
+        self.foodRepository       = FoodRepository.make(context: context)
         self.ingredientRepository = RecipeIngredientRepository(context: context)
 
         if case .edit(let food) = mode {
@@ -163,6 +166,8 @@ final class PreparedFoodFormViewModel {
     // MARK: - Save
 
     func save() throws {
+        guard !isSaving else { return }
+
         var errors: [String] = []
         let trimmedName = name.trimmingCharacters(in: .whitespaces)
         if trimmedName.isEmpty { errors.append("El nombre del platillo es requerido.") }
@@ -174,8 +179,8 @@ final class PreparedFoodFormViewModel {
         isSaving = true
         defer { isSaving = false }
 
-        let total = totalMacros
-        let tags = tagsText.split(separator: ",")
+        let total    = totalMacros
+        let tags     = tagsText.split(separator: ",")
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
         let brandVal: String? = brand.trimmingCharacters(in: .whitespaces).isEmpty
@@ -183,24 +188,7 @@ final class PreparedFoodFormViewModel {
 
         switch mode {
         case .create:
-            let food = try foodRepository.add(name: trimmedName, kind: .preparedFood, category: category, source: .coach)
-            food.servings = servings
-            try foodRepository.update(
-                food, name: trimmedName, kind: .preparedFood, category: category,
-                calories: total.calories, protein: total.protein,
-                carbohydrates: total.carbohydrates, fat: total.fat, fiber: total.fiber,
-                servingSize: nil, servingUnit: nil, brand: brandVal, tags: tags
-            )
-            for (i, entry) in pendingIngredients.enumerated() {
-                _ = try ingredientRepository.add(
-                    ingredient: entry.food, to: food,
-                    amountGrams: entry.amountGrams, sortOrder: i
-                )
-            }
-            if let imageData = pendingImageData {
-                try foodRepository.setImage(data: imageData, for: food)
-                try? foodRepository.generateThumbnailIfNeeded(for: food)
-            }
+            try createPreparedFood(name: trimmedName, total: total, tags: tags, brandVal: brandVal)
 
         case .edit(let food):
             food.servings = servings
@@ -223,6 +211,116 @@ final class PreparedFoodFormViewModel {
             } else if shouldRemoveImage {
                 try foodRepository.removeImage(from: food)
             }
+        }
+    }
+
+    // MARK: - Atomic creation (compensating transaction)
+    //
+    // Phase B — Filesystem write (if image present):
+    //   Write image file to disk before any SwiftData inserts.
+    //   Record the path in a local rollback journal immediately.
+    //
+    // Phase C — SwiftData inserts (no save):
+    //   Insert Food, RecipeIngredients, FoodImage — all without context.save().
+    //   context.save() is deferred so context.rollback() remains effective.
+    //
+    // Phase D — Single commit:
+    //   context.save() is the only commit in the entire creation workflow.
+    //
+    // On failure — Compensation:
+    //   context.rollback() undoes all Phase C insertions (safe — no prior save).
+    //   The rollback journal deletes only the image file written this attempt.
+    //   Pre-existing food images are never touched.
+    //
+    // Filesystem + SwiftData do NOT form an ACID-distributed transaction.
+    // This is a compensating transaction, not atomic rollback.
+
+    private func createPreparedFood(
+        name: String,
+        total: NutritionValues,
+        tags: [String],
+        brandVal: String?
+    ) throws {
+        // Pre-allocate Food to obtain its UUID for image filesystem paths.
+        // Not inserted into context until Phase C.
+        let food = Food(name: name, kind: .preparedFood, category: category, source: .coach)
+        food.brand         = brandVal
+        food.tags          = tags
+        food.servings      = servings
+        food.calories      = total.calories
+        food.protein       = total.protein
+        food.carbohydrates = total.carbohydrates
+        food.fat           = total.fat
+        food.fiber         = total.fiber
+
+        // Filesystem rollback journal — relative path of the image file written
+        // during this attempt only. Nil if no image was pending.
+        // Pre-existing food images are never in scope for this journal.
+        var imageRollbackPath: String? = nil
+
+        // Tracks which phase failed for the most relevant user-facing message.
+        var imagePhaseCompleted = false
+
+        do {
+            // ── PHASE B: FILESYSTEM WRITE ────────────────────────────────
+            // Write image file before any SwiftData inserts so compensation
+            // via context.rollback() remains safe for the SwiftData side.
+            if let imageData = pendingImageData {
+                let path = try foodRepository.prepareImageFile(data: imageData, foodID: food.id)
+                imageRollbackPath = path
+            }
+            imagePhaseCompleted = true
+
+            // ── PHASE C: SWIFTDATA INSERTS — NO SAVE ────────────────────
+            // All objects are inserted but NOT saved. context.save() is deferred
+            // so context.rollback() can undo everything if Phase D fails.
+            foodRepository.insertNew(food)
+
+            for (i, entry) in pendingIngredients.enumerated() {
+                ingredientRepository.insertNew(
+                    ingredient:  entry.food,
+                    to:          food,
+                    amountGrams: entry.amountGrams,
+                    sortOrder:   i
+                )
+            }
+
+            if let path = imageRollbackPath {
+                let image = FoodImage(originalPath: path)
+                image.food = food
+                food.image = image
+                foodRepository.insertFoodImage(image)
+            }
+
+            // ── PHASE D: SINGLE COMMIT ───────────────────────────────────
+            // The only context.save() in the entire creation workflow.
+            try context.save()
+
+            // Post-commit: thumbnail generation is best-effort.
+            // Failure here does not affect the committed food or its macros.
+            try? foodRepository.generateThumbnailIfNeeded(for: food)
+
+        } catch {
+            // ── COMPENSATION ─────────────────────────────────────────────
+            // 1. Discard all pending SwiftData insertions.
+            //    Safe — context.save() has not been called successfully.
+            context.rollback()
+
+            // 2. Delete the image file written during this attempt.
+            //    Only the path in the journal is deleted; pre-existing food images untouched.
+            //    A cleanup failure is logged but does not suppress the original error.
+            if let path = imageRollbackPath {
+                do {
+                    try FoodImageStorageService().delete(relativePath: path)
+                } catch {
+                    AppLogger.persistence.error("PreparedFood create: image compensation failed")
+                }
+            }
+
+            AppLogger.persistence.error("PreparedFood create failed — compensation applied")
+            throw imagePhaseCompleted
+                ? PreparedFoodSaveError.createFailed
+                : PreparedFoodSaveError.imageWriteFailed
         }
     }
 
@@ -253,6 +351,22 @@ final class PreparedFoodFormViewModel {
             if let cached = PhotoImageCache.shared.image(for: path) {
                 previewImage = cached
             }
+        }
+    }
+}
+
+// MARK: - Errors
+
+private enum PreparedFoodSaveError: LocalizedError {
+    case imageWriteFailed
+    case createFailed
+
+    var errorDescription: String? {
+        switch self {
+        case .imageWriteFailed:
+            return "No se pudo guardar la imagen del platillo. Inténtalo de nuevo."
+        case .createFailed:
+            return "No se pudo guardar el platillo. Los cambios no se guardaron. Inténtalo de nuevo."
         }
     }
 }

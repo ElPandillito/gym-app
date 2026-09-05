@@ -5,7 +5,7 @@
 
 import SwiftUI
 
-@Observable
+@MainActor @Observable
 final class CheckInDetailViewModel {
     var isShowingEditSheet: Bool          = false
     var isShowingBodyMetricsForm: Bool    = false

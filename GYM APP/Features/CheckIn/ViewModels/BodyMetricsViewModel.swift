@@ -5,7 +5,7 @@
 
 import SwiftUI
 
-@Observable
+@MainActor @Observable
 final class BodyMetricsViewModel {
 
     // Required
@@ -18,6 +18,10 @@ final class BodyMetricsViewModel {
     var waterPercentageText: String    = ""
     var visceralFatText: String        = ""
     var basalMetabolicRateText: String = ""
+
+    // ISAK base measurements (Level 1 + 2)
+    var sittingHeightText: String = ""
+    var armSpanText: String       = ""
 
     private let existingMetrics: BodyMetrics?
     private let athleteHeight: Double?      // centimeters
@@ -56,13 +60,40 @@ final class BodyMetricsViewModel {
         waterPercentageText    = m.waterPercentage.map     { String(format: "%.1f", $0) } ?? ""
         visceralFatText        = m.visceralFatLevel.map    { String(format: "%.0f", $0) } ?? ""
         basalMetabolicRateText = m.basalMetabolicRate.map  { String(format: "%.0f", $0) } ?? ""
+        sittingHeightText      = m.sittingHeight.map       { String(format: "%.1f", $0) } ?? ""
+        armSpanText            = m.armSpan.map             { String(format: "%.1f", $0) } ?? ""
     }
 
+    // MARK: - Save (standalone form — commits immediately)
+
     // Returns true on success. Creates a new BodyMetrics if none exists yet.
-    func save(for checkIn: CheckIn, using repository: BodyMetricsRepository) -> Bool {
+    // Throws on repository failure so the caller (CheckInWorkflowViewModel) can handle it.
+    @discardableResult
+    func save(for checkIn: CheckIn, using repository: BodyMetricsRepository) throws -> Bool {
         guard canSave else { return false }
         let metrics = existingMetrics ?? BodyMetrics()
+        applyFields(to: metrics)
+        try repository.save(metrics, for: checkIn)
+        return true
+    }
 
+    // MARK: - Insert-only (workflow creation path — no commit)
+    //
+    // Calls repository.insertNew() instead of repository.save().
+    // The orchestrator (CheckInWorkflowViewModel) controls the single final commit.
+
+    @discardableResult
+    func insertRecord(for checkIn: CheckIn, using repository: BodyMetricsRepository) -> Bool {
+        guard canSave else { return false }
+        let metrics = existingMetrics ?? BodyMetrics()
+        applyFields(to: metrics)
+        repository.insertNew(metrics, for: checkIn)
+        return true
+    }
+
+    // MARK: - Helpers
+
+    private func applyFields(to metrics: BodyMetrics) {
         metrics.bodyWeight         = weightText.asPositiveDouble
         metrics.bmi                = bmi
         metrics.bodyFatPercentage  = fatPercentageText.asPositiveDouble
@@ -71,8 +102,7 @@ final class BodyMetricsViewModel {
         metrics.waterPercentage    = waterPercentageText.asPositiveDouble
         metrics.visceralFatLevel   = visceralFatText.asPositiveDouble
         metrics.basalMetabolicRate = basalMetabolicRateText.asPositiveDouble
-
-        try? repository.save(metrics, for: checkIn)
-        return true
+        metrics.sittingHeight      = sittingHeightText.asPositiveDouble
+        metrics.armSpan            = armSpanText.asPositiveDouble
     }
 }

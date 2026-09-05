@@ -12,22 +12,48 @@ struct DashboardView: View {
 
     @State private var viewModel = DashboardViewModel()
 
+    private let filterCases: [DashboardFilter] = [.all, .active, .inactive, .competition, .bulk, .cut]
+
     var body: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: AppSpacing.xl) {
-                summarySection
-                recentActivitySection
-                alertsSection
-                progressorsSection
-                pendingActionsSection
+        VStack(spacing: 0) {
+            filterBar
+            Divider()
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: AppSpacing.xl) {
+                    summarySection
+                    recentActivitySection
+                    alertsSection
+                    progressorsSection
+                    pendingActionsSection
+                }
+                .padding(.horizontal, AppSpacing.base)
+                .padding(.vertical, AppSpacing.lg)
             }
-            .padding(.horizontal, AppSpacing.base)
-            .padding(.vertical, AppSpacing.lg)
         }
         .navigationTitle("Dashboard")
         .onAppear     { viewModel.load(athletes: athletes, checkIns: checkIns) }
         .onChange(of: athletes)  { viewModel.load(athletes: athletes, checkIns: checkIns) }
         .onChange(of: checkIns)  { viewModel.load(athletes: athletes, checkIns: checkIns) }
+        .onChange(of: viewModel.activeFilter) { viewModel.load(athletes: athletes, checkIns: checkIns) }
+    }
+
+    // MARK: - Filter Bar
+
+    private var filterBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: AppSpacing.sm) {
+                ForEach(filterCases) { filter in
+                    FilterChip(
+                        filter: filter,
+                        isSelected: viewModel.activeFilter == filter
+                    ) {
+                        viewModel.activeFilter = filter
+                    }
+                }
+            }
+            .padding(.horizontal, AppSpacing.base)
+            .padding(.vertical, AppSpacing.sm)
+        }
     }
 
     // MARK: - Athlete lookup
@@ -433,6 +459,29 @@ private struct PendingActionRow: View {
         }
         .padding(.horizontal, AppSpacing.md)
         .padding(.vertical, AppSpacing.sm)
+    }
+}
+
+// MARK: - FilterChip
+
+private struct FilterChip: View {
+    let filter: DashboardFilter
+    let isSelected: Bool
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            Label(filter.rawValue, systemImage: filter.systemImage)
+                .font(.caption.weight(.medium))
+                .padding(.horizontal, AppSpacing.md)
+                .padding(.vertical, AppSpacing.xs)
+                .background(
+                    isSelected ? Color.accentColor : Color.secondary.opacity(0.12),
+                    in: Capsule()
+                )
+                .foregroundStyle(isSelected ? Color.white : Color.primary)
+        }
+        .buttonStyle(.plain)
     }
 }
 

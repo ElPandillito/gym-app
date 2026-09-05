@@ -104,6 +104,16 @@ struct AthleteRowView: View {
                         .font(.subheadline.bold())
                         .foregroundStyle(Color.accentColor)
                 }
+                .overlay(alignment: .topTrailing) {
+                    if let dotColor = alertDotColor {
+                        Circle()
+                            .fill(dotColor)
+                            .frame(width: 11, height: 11)
+                            .overlay {
+                                Circle().strokeBorder(.background, lineWidth: 1.5)
+                            }
+                    }
+                }
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(athlete.name)
@@ -131,6 +141,24 @@ struct AthleteRowView: View {
             .map(String.init)
             .joined()
             .uppercased()
+    }
+
+    // Returns the dot color for the highest-severity alert, nil if none.
+    private var alertDotColor: Color? {
+        let sorted    = athlete.checkIns.sorted { $0.date < $1.date }
+        let snapshots = sorted.map(CheckInSnapshot.init)
+        guard let top = AthleteAlertEvaluator.evaluate(
+            athleteID:      athlete.id,
+            athleteName:    athlete.name,
+            sortedCheckIns: snapshots,
+            preferences:    CoachPreferences.default,
+            now:            Date()
+        ).first else { return nil }
+        switch top.severity {
+        case 3...: return AppColors.error
+        case 2:    return AppColors.warning
+        default:   return AppColors.info
+        }
     }
 
     private var lastCheckInLabel: String {

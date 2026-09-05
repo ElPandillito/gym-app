@@ -29,4 +29,14 @@ struct SkinfoldMeasurementsRepository: SkinfoldMeasurementsRepositoryProtocol {
         checkIn.updatedAt = Date()
         try context.save()
     }
+
+    // Insert-only variant — no context.save(). Orchestrator controls commit.
+    func insertNew(_ measurements: SkinfoldMeasurements, for checkIn: CheckIn) {
+        if checkIn.skinfolds == nil {
+            measurements.checkIn = checkIn
+            context.insert(measurements)
+        }
+        measurements.updatedAt = Date()
+        checkIn.updatedAt      = Date()
+    }
 }

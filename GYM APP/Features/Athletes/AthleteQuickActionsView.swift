@@ -12,7 +12,7 @@ struct AthleteQuickActionsView: View {
 
     @Environment(\.modelContext) private var modelContext
 
-    @State private var showNewCheckIn     = false
+    @State private var showNewCheckIn     = false  // opens CheckInWorkflowView
     @State private var showBodyMetrics    = false
     @State private var showCircumferences = false
     @State private var showSkinfolds      = false
@@ -31,7 +31,7 @@ struct AthleteQuickActionsView: View {
             actionsGrid
         }
         .sheet(isPresented: $showNewCheckIn) {
-            CheckInFormView(athlete: athlete)
+            CheckInWorkflowView(athlete: athlete)
         }
         .sheet(isPresented: $showBodyMetrics) {
             if let ci = latestCheckIn { BodyMetricsFormView(checkIn: ci) }

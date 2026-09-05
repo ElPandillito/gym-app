@@ -92,6 +92,7 @@ final class DashboardViewModel {
     var topProgressors: [DashboardProgressor]    = []
     var pendingActions: [DashboardPendingAction] = []
     var isLoading                                = false
+    var activeFilter: DashboardFilter            = .all
 
     // MARK: - Thresholds
 
@@ -110,14 +111,28 @@ final class DashboardViewModel {
         isLoading = true
         defer { isLoading = false }
 
-        let ctx = buildContext(athletes: athletes, checkIns: checkIns)
-        let (newKPIs, thisWeek) = buildKPIs(athletes: athletes, checkIns: checkIns, ctx: ctx)
+        // Apply active filter — scopes all sections to the matching athlete subset
+        let filtered: [Athlete]
+        let filteredCIs: [CheckIn]
+        if activeFilter == .all {
+            filtered    = athletes
+            filteredCIs = checkIns
+        } else {
+            filtered        = activeFilter.apply(to: athletes, checkIns: checkIns, preferences: CoachPreferences.default)
+            let filteredIDs = Set(filtered.map { $0.id })
+            filteredCIs     = checkIns.filter { ci in
+                ci.athlete.map { filteredIDs.contains($0.id) } ?? false
+            }
+        }
+
+        let ctx = buildContext(athletes: filtered, checkIns: filteredCIs)
+        let (newKPIs, thisWeek) = buildKPIs(athletes: filtered, checkIns: filteredCIs, ctx: ctx)
         kpis             = newKPIs
         checkInsThisWeek = thisWeek
-        recentCheckIns   = buildRecentActivity(checkIns: checkIns, ctx: ctx)
-        alerts           = buildAlerts(athletes: athletes, ctx: ctx)
-        topProgressors   = buildProgressors(athletes: athletes, ctx: ctx)
-        pendingActions   = buildPendingActions(athletes: athletes, ctx: ctx)
+        recentCheckIns   = buildRecentActivity(checkIns: filteredCIs, ctx: ctx)
+        alerts           = buildAlerts(athletes: filtered, ctx: ctx)
+        topProgressors   = buildProgressors(athletes: filtered, ctx: ctx)
+        pendingActions   = buildPendingActions(athletes: filtered, ctx: ctx)
     }
 
     // MARK: - Private: Shared context

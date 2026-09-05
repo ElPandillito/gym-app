@@ -30,4 +30,14 @@ struct CircumferenceMeasurementsRepository: CircumferenceMeasurementsRepositoryP
         checkIn.updatedAt = Date()
         try context.save()
     }
+
+    // Insert-only variant — no context.save(). Orchestrator controls commit.
+    func insertNew(_ measurements: CircumferenceMeasurements, for checkIn: CheckIn) {
+        if checkIn.circumferences == nil {
+            measurements.checkIn = checkIn
+            context.insert(measurements)
+        }
+        measurements.updatedAt = Date()
+        checkIn.updatedAt      = Date()
+    }
 }

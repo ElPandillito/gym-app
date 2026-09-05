@@ -55,6 +55,9 @@ final class AthleteOverviewViewModel {
     private(set) var latestCheckIn: CheckIn?
     private(set) var previousCheckIn: CheckIn?
 
+    /// Full OLS trend analysis — populated when at least 2 check-ins exist.
+    private(set) var statisticsReport: AthleteStatisticsReport?
+
     // MARK: - Build (called once per athlete change)
 
     func build(from athlete: Athlete) {
@@ -136,6 +139,11 @@ final class AthleteOverviewViewModel {
             preferences:    CoachPreferences.default,
             now:            now
         )
+
+        // Full OLS trend analysis — requires at least 2 snapshots
+        statisticsReport = snapshots.count >= 2
+            ? StatisticsEngine.compute(athleteID: athlete.id, snapshots: snapshots)
+            : nil
     }
 
     // MARK: - Helpers

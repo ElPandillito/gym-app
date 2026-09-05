@@ -91,6 +91,14 @@ struct AthleteFormView: View {
                     .disabled(!viewModel.canSave)
                 }
             }
+            .alert("Error al guardar", isPresented: Binding(
+                get: { viewModel.saveError != nil },
+                set: { if !$0 { viewModel.saveError = nil } }
+            )) {
+                Button("Aceptar", role: .cancel) {}
+            } message: {
+                Text(viewModel.saveError ?? "")
+            }
         }
     }
 }

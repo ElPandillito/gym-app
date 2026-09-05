@@ -14,7 +14,7 @@ struct RecipeIngredientRepository: RecipeIngredientRepositoryProtocol {
         self.context = context
     }
 
-    // MARK: - Add
+    // MARK: - Add (standard — inserts + saves immediately)
 
     func add(
         ingredient: Food,
@@ -65,5 +65,25 @@ struct RecipeIngredientRepository: RecipeIngredientRepositoryProtocol {
         }
         recipe.updatedAt = Date()
         try context.save()
+    }
+
+    // MARK: - Insert-only variant (used by PreparedFoodFormViewModel two-phase creation)
+    //
+    // Inserts the RecipeIngredient into context without calling context.save().
+    // The orchestrator (PreparedFoodFormViewModel) controls the single final commit
+    // so that context.rollback() can undo all insertions if any phase fails.
+
+    func insertNew(
+        ingredient: Food,
+        to recipe: Food,
+        amountGrams: Double,
+        sortOrder: Int
+    ) {
+        let entry        = RecipeIngredient(amountGrams: amountGrams, sortOrder: sortOrder)
+        entry.ingredient = ingredient
+        entry.recipe     = recipe
+        recipe.ingredients.append(entry)
+        recipe.updatedAt = Date()
+        context.insert(entry)
     }
 }

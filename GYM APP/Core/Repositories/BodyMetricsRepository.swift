@@ -30,4 +30,14 @@ struct BodyMetricsRepository: BodyMetricsRepositoryProtocol {
         checkIn.updatedAt = Date()
         try context.save()
     }
+
+    // Insert-only variant — no context.save(). Orchestrator controls commit.
+    func insertNew(_ metrics: BodyMetrics, for checkIn: CheckIn) {
+        if checkIn.bodyMetrics == nil {
+            metrics.checkIn = checkIn
+            context.insert(metrics)
+        }
+        metrics.updatedAt = Date()
+        checkIn.updatedAt = Date()
+    }
 }

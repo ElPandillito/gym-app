@@ -21,7 +21,7 @@ struct FoodRepository: FoodRepositoryProtocol {
         FoodRepository(context: context, imageStorage: FoodImageStorageService())
     }
 
-    // MARK: - Add
+    // MARK: - Add (standard — inserts + saves immediately)
 
     func add(
         name: String,
@@ -151,7 +151,7 @@ struct FoodRepository: FoodRepositoryProtocol {
         return try context.fetch(descriptor)
     }
 
-    // MARK: - Image
+    // MARK: - Image (standard — inserts + saves immediately)
 
     func setImage(data: Data, for food: Food) throws {
         if let existing = food.image {
@@ -191,6 +191,28 @@ struct FoodRepository: FoodRepositoryProtocol {
         food.image     = nil
         food.updatedAt = Date()
         try context.save()
+    }
+
+    // MARK: - Insert-only variants (used by PreparedFoodFormViewModel two-phase creation)
+    //
+    // These methods perform partial work without calling context.save().
+    // The orchestrator (PreparedFoodFormViewModel) controls the single final commit
+    // so that context.rollback() can undo all insertions if any phase fails.
+
+    /// Writes the image file to disk only. No SwiftData operation.
+    /// Caller appends the returned path to its rollback journal immediately.
+    func prepareImageFile(data: Data, foodID: UUID) throws -> String {
+        return try imageStorage.saveOriginal(data: data, foodID: foodID)
+    }
+
+    /// Inserts the Food into context without saving.
+    func insertNew(_ food: Food) {
+        context.insert(food)
+    }
+
+    /// Inserts a FoodImage record into context without saving.
+    func insertFoodImage(_ image: FoodImage) {
+        context.insert(image)
     }
 
     // MARK: - Private helpers

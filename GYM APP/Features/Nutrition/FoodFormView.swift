@@ -227,7 +227,7 @@ struct FoodFormView: View {
             Text(label)
             Spacer()
             TextField("0", text: text)
-                .keyboardType(.decimalPad)
+                .decimalKeyboard()
                 .multilineTextAlignment(.trailing)
                 .frame(maxWidth: 100)
         }
@@ -248,7 +248,7 @@ struct FoodFormView: View {
                     Text("Gramos por porción")
                     Spacer()
                     TextField("0", text: $viewModel.servingSizeText)
-                        .keyboardType(.decimalPad)
+                        .decimalKeyboard()
                         .multilineTextAlignment(.trailing)
                         .frame(maxWidth: 100)
                 }
@@ -288,14 +288,14 @@ struct FoodFormView: View {
         if provider.hasItemConformingToTypeIdentifier("public.image") {
             _ = provider.loadDataRepresentation(forTypeIdentifier: "public.image") { data, _ in
                 guard let data else { return }
-                DispatchQueue.main.async { viewModel.applyImageData(data) }
+                Task { @MainActor in viewModel.applyImageData(data) }
             }
         } else if provider.hasItemConformingToTypeIdentifier("public.file-url") {
             _ = provider.loadDataRepresentation(forTypeIdentifier: "public.file-url") { data, _ in
                 guard let data,
                       let url = URL(dataRepresentation: data, relativeTo: nil, isAbsolute: true),
                       let imageData = try? Data(contentsOf: url) else { return }
-                DispatchQueue.main.async { viewModel.applyImageData(imageData) }
+                Task { @MainActor in viewModel.applyImageData(imageData) }
             }
         }
         return true
