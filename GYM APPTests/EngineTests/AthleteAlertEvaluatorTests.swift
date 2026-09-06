@@ -229,4 +229,98 @@ struct AthleteAlertEvaluatorTests {
         #expect(!hasNoPhotos)
         #expect(!hasMissing)
     }
+
+    // MARK: - Negative trend
+
+    @Test("rising bf trend over 3+ data points triggers negativeTrend alert")
+    func risingBfTrendAlert() {
+        // BF rising ~4% over 35 days → slope * span > 1.0
+        let snap1 = snapshot(daysAgo: 40, weight: 80.0, bodyFat: 15.0)
+        let snap2 = snapshot(daysAgo: 20, weight: 80.0, bodyFat: 17.0)
+        let snap3 = snapshot(daysAgo: 5,  weight: 80.0, bodyFat: 19.0)
+        let alerts = AthleteAlertEvaluator.evaluate(
+            athleteID:      athleteID,
+            athleteName:    athleteName,
+            sortedCheckIns: [snap1, snap2, snap3],
+            preferences:    prefs,
+            now:            now
+        )
+        let hasNeg = alerts.contains { if case .negativeTrend = $0.kind { return true }; return false }
+        #expect(hasNeg)
+    }
+
+    @Test("fewer than 3 bf data points produces no negativeTrend alert")
+    func insufficientBfPointsNoNegativeTrend() {
+        let snap1 = snapshot(daysAgo: 30, weight: 80.0, bodyFat: 15.0)
+        let snap2 = snapshot(daysAgo: 5,  weight: 80.0, bodyFat: 19.0)
+        let alerts = AthleteAlertEvaluator.evaluate(
+            athleteID:      athleteID,
+            athleteName:    athleteName,
+            sortedCheckIns: [snap1, snap2],
+            preferences:    prefs,
+            now:            now
+        )
+        let hasNeg = alerts.contains { if case .negativeTrend = $0.kind { return true }; return false }
+        #expect(!hasNeg)
+    }
+
+    // MARK: - Alert toggle preferences
+
+    @Test("showInactiveAlerts=false suppresses inactive alert")
+    func disabledInactiveAlertToggle() {
+        var customPrefs = CoachPreferences.default
+        customPrefs.showInactiveAlerts = false
+        let snap = snapshot(daysAgo: prefs.inactivityThresholdDays + 5)
+        let alerts = AthleteAlertEvaluator.evaluate(
+            athleteID:      athleteID,
+            athleteName:    athleteName,
+            sortedCheckIns: [snap],
+            preferences:    customPrefs,
+            now:            now
+        )
+        let hasInactive = alerts.contains { if case .inactive = $0.kind { return true }; return false }
+        #expect(!hasInactive)
+    }
+
+    @Test("showPhotoAlerts=false suppresses noPhotos alert")
+    func disabledPhotoAlertToggle() {
+        var customPrefs = CoachPreferences.default
+        customPrefs.showPhotoAlerts = false
+        let snap = snapshot(daysAgo: 3, photoCount: 0)
+        let alerts = AthleteAlertEvaluator.evaluate(
+            athleteID:      athleteID,
+            athleteName:    athleteName,
+            sortedCheckIns: [snap],
+            preferences:    customPrefs,
+            now:            now
+        )
+        let hasNoPhotos = alerts.contains { if case .noPhotos = $0.kind { return true }; return false }
+        #expect(!hasNoPhotos)
+    }
+
+    @Test("showMetricAlerts=false suppresses incompleteMetrics alert")
+    func disabledMetricAlertToggle() {
+        var customPrefs = CoachPreferences.default
+        customPrefs.showMetricAlerts = false
+        let snap = CheckInSnapshot(
+            id:             UUID(),
+            date:           date(daysAgo: 3),
+            athleteID:      athleteID,
+            bodyMetrics:    nil,
+            circumferences: nil,
+            skinfolds:      nil,
+            photoCount:     1,
+            hasCoachNote:   false,
+            hasAthleteNote: false
+        )
+        let alerts = AthleteAlertEvaluator.evaluate(
+            athleteID:      athleteID,
+            athleteName:    athleteName,
+            sortedCheckIns: [snap],
+            preferences:    customPrefs,
+            now:            now
+        )
+        let hasMissing = alerts.contains { if case .incompleteMetrics = $0.kind { return true }; return false }
+        #expect(!hasMissing)
+    }
 }
