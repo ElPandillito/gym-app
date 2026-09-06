@@ -64,6 +64,9 @@ struct CheckInDetailView: View {
         .sheet(isPresented: $viewModel.isShowingSkinfoldForm) {
             SkinfoldMeasurementsFormView(checkIn: checkIn)
         }
+        .sheet(isPresented: $viewModel.isShowingNotesEdit) {
+            NotesEditSheet(checkIn: checkIn)
+        }
     }
 
     // MARK: - Sections
@@ -254,6 +257,16 @@ struct CheckInDetailView: View {
                 }
                 .padding(.vertical, 4)
             }
+
+            Button {
+                viewModel.isShowingNotesEdit = true
+            } label: {
+                Label(
+                    (coachText.isEmpty && athleteText.isEmpty) ? "Agregar notas" : "Editar notas",
+                    systemImage: (coachText.isEmpty && athleteText.isEmpty) ? "plus" : "pencil"
+                )
+            }
+            .foregroundStyle(Color.accentColor)
         } header: {
             Label("Notas", systemImage: "note.text")
         }

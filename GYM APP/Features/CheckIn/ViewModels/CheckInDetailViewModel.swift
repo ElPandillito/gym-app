@@ -12,4 +12,5 @@ final class CheckInDetailViewModel {
     var isShowingCircumferencesForm: Bool = false
     var isShowingSkinfoldForm: Bool       = false
     var isShowingComparison: Bool         = false
+    var isShowingNotesEdit: Bool          = false
 }
