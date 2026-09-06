@@ -13,6 +13,7 @@ struct GYM_APPApp: App {
     // Prevents the orphan sweep from running more than once per cold launch.
     // @State in App persists for the process lifetime.
     @State private var sweepDone = false
+    @State private var preferencesStore = CoachPreferencesStore()
 
     // MARK: - Container initialization
 
@@ -71,6 +72,7 @@ struct GYM_APPApp: App {
             case .success(let container):
                 MainTabView()
                     .modelContainer(container)
+                    .environment(preferencesStore)
                     .task {
                         guard !sweepDone else { return }
                         sweepDone = true
