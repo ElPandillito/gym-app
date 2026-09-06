@@ -10,6 +10,7 @@ struct AthleteDetailView: View {
     let athlete: Athlete
     @State private var selectedSection: AthleteSection = .overview
     @State private var isShowingComparisonPicker = false
+    @State private var isShowingReport = false
     @State private var overviewViewModel = AthleteOverviewViewModel()
 
     enum AthleteSection: String, CaseIterable {
@@ -40,6 +41,13 @@ struct AthleteDetailView: View {
                         Label("Comparar Check-Ins", systemImage: "chart.bar.doc.horizontal")
                     }
                     .disabled(athlete.checkIns.count < 2)
+                    Divider()
+                    Button {
+                        isShowingReport = true
+                    } label: {
+                        Label("Generar Reporte", systemImage: "doc.text.fill")
+                    }
+                    .disabled(overviewViewModel.statisticsReport == nil)
                 } label: {
                     Image(systemName: "ellipsis.circle")
                 }
@@ -47,6 +55,12 @@ struct AthleteDetailView: View {
         }
         .sheet(isPresented: $isShowingComparisonPicker) {
             CheckInComparisonPickerView(athlete: athlete)
+        }
+        .sheet(isPresented: $isShowingReport) {
+            AthleteReportSheet(
+                athlete: athlete,
+                statisticsReport: overviewViewModel.statisticsReport
+            )
         }
         .onAppear {
             overviewViewModel.build(from: athlete)
