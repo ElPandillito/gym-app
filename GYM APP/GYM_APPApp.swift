@@ -27,6 +27,7 @@ struct GYM_APPApp: App {
                 configurations: [configuration]
             )
             FoodSeeder.seedIfNeeded(context: container.mainContext)
+            applyStoreProtection(to: configuration.url)   // D2: FileProtection + no-backup
             AppLogger.persistence.info("ModelContainer ready — schema v1.0.0")
             return .success(container)
         } catch {
@@ -36,6 +37,31 @@ struct GYM_APPApp: App {
             return .failure(error)
         }
     }()
+
+    /// Applies FileProtection.completeUnlessOpen and excludes from iCloud backup
+    /// on the SwiftData store and its WAL/SHM auxiliary files.
+    /// Uses try? — failures are best-effort; they don't compromise data integrity.
+    private static func applyStoreProtection(to url: URL) {
+        let dir  = url.deletingLastPathComponent()
+        let stem = url.deletingPathExtension().lastPathComponent
+        let candidates: [URL] = [
+            url,
+            dir.appendingPathComponent(stem + ".sqlite"),
+            dir.appendingPathComponent(stem + ".sqlite-shm"),
+            dir.appendingPathComponent(stem + ".sqlite-wal"),
+        ]
+        for candidate in candidates {
+            guard FileManager.default.fileExists(atPath: candidate.path) else { continue }
+            try? FileManager.default.setAttributes(
+                [.protectionKey: FileProtectionType.completeUnlessOpen],
+                ofItemAtPath: candidate.path
+            )
+            var rv = URLResourceValues()
+            rv.isExcludedFromBackup = true
+            var mutable = candidate
+            try? mutable.setResourceValues(rv)
+        }
+    }
 
     // MARK: - Scene
 
