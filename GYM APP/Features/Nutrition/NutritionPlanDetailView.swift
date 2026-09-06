@@ -468,6 +468,7 @@ private struct MealEditSheet: View {
     @State private var notes: String
     @State private var hasTime: Bool
     @State private var time: Date
+    @State private var saveError: String?
     private let repo: MealRepository
 
     init(meal: Meal, context: ModelContext) {
@@ -519,11 +520,23 @@ private struct MealEditSheet: View {
                         guard !n.isEmpty else { return }
                         let notesVal: String? = notes.trimmingCharacters(in: .whitespaces).isEmpty
                             ? nil : notes.trimmingCharacters(in: .whitespaces)
-                        try? repo.update(meal, name: n, notes: notesVal, time: hasTime ? time : nil)
-                        dismiss()
+                        do {
+                            try repo.update(meal, name: n, notes: notesVal, time: hasTime ? time : nil)
+                            dismiss()
+                        } catch {
+                            saveError = "No se pudo guardar la comida. Inténtalo de nuevo."
+                        }
                     }
                     .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
+            }
+            .alert("Error al guardar", isPresented: Binding(
+                get: { saveError != nil },
+                set: { if !$0 { saveError = nil } }
+            )) {
+                Button("Aceptar", role: .cancel) {}
+            } message: {
+                Text(saveError ?? "")
             }
         }
     }

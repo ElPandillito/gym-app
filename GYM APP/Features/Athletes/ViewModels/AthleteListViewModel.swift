@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import OSLog
 
 enum AthleteSortOrder: String, CaseIterable {
     case nameAscending   = "Nombre (A–Z)"
@@ -20,6 +21,7 @@ final class AthleteListViewModel {
     var athleteToEdit: Athlete? = nil
     var athleteToDelete: Athlete? = nil
     var isShowingDeleteAlert: Bool = false
+    var deleteError: String? = nil
 
     func filtered(_ athletes: [Athlete]) -> [Athlete] {
         let searched = searchText.isEmpty
@@ -57,12 +59,18 @@ final class AthleteListViewModel {
 
     func confirmDelete(using repository: AthleteRepository) {
         guard let athlete = athleteToDelete else { return }
-        try? repository.delete(athlete)
+        do {
+            try repository.delete(athlete)
+        } catch {
+            deleteError = "No se pudo eliminar el atleta. Inténtalo de nuevo."
+            AppLogger.persistence.error("Athlete delete failed")
+        }
         athleteToDelete = nil
     }
 
     func cancelDelete() {
         athleteToDelete = nil
         isShowingDeleteAlert = false
+        deleteError = nil
     }
 }

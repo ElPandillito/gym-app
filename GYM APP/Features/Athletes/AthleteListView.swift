@@ -86,6 +86,14 @@ struct AthleteListView: View {
                 Text("¿Deseas eliminar a \(name)? Esta acción no se puede deshacer.")
             }
         }
+        .alert("Error al eliminar", isPresented: Binding(
+            get: { viewModel.deleteError != nil },
+            set: { if !$0 { viewModel.deleteError = nil } }
+        )) {
+            Button("Aceptar", role: .cancel) {}
+        } message: {
+            Text(viewModel.deleteError ?? "")
+        }
     }
 }
 
