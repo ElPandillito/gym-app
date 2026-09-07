@@ -1,7 +1,7 @@
 # Reporte de Sesión Autónoma — GYM APP
 **Sesión:** Claude Sonnet 4.6 (autoridad autónoma)
-**Fases completadas:** 26 → 31
-**Commits creados:** 5 nuevos commits sobre `main`
+**Fases completadas:** 26 → 32
+**Commits creados:** 6 nuevos commits sobre `main`
 
 ---
 
@@ -296,10 +296,106 @@ struct AthleteRowView: View {
 
 ---
 
+## Phase 32 — AIEngine: contratos, stubs y tests
+**Commit:** `Phase 32: AIEngine contracts, stubs, and tests (155/155 passing)`
+
+### Archivos creados
+- `GYM APP/Core/AIEngine/Models/AIServiceError.swift`
+- `GYM APP/Core/AIEngine/Protocols/AutoRecommendationServiceProtocol.swift`
+- `GYM APP/Core/AIEngine/Protocols/ProgressPredictionServiceProtocol.swift`
+- `GYM APP/Core/AIEngine/Protocols/PosingAnalysisServiceProtocol.swift`
+- `GYM APP/Core/AIEngine/Protocols/BodySymmetryServiceProtocol.swift`
+- `GYM APP/Core/AIEngine/Protocols/PhotoComparisonServiceProtocol.swift`
+- `GYM APP/Core/AIEngine/Stubs/AutoRecommendationStub.swift`
+- `GYM APP/Core/AIEngine/Stubs/ProgressPredictionStub.swift`
+- `GYM APP/Core/AIEngine/Stubs/PosingAnalysisStub.swift`
+- `GYM APP/Core/AIEngine/Stubs/BodySymmetryStub.swift`
+- `GYM APP/Core/AIEngine/Stubs/PhotoComparisonStub.swift`
+- `GYM APPTests/EngineTests/AutoRecommendationStubTests.swift`
+- `GYM APPTests/EngineTests/ProgressPredictionStubTests.swift`
+
+### AIServiceError
+Tipo de error de dominio para todos los servicios de AI:
+```swift
+enum AIServiceError: Error, Sendable, Equatable {
+    case insufficientData
+    case unavailable
+    case invalidInput(String)
+    case serviceFailure
+}
+```
+
+### Protocolos
+Todos con `async throws` — sin Combine, sin callbacks.
+
+| Protocolo | Input | Output |
+|---|---|---|
+| `AutoRecommendationServiceProtocol` | `AthleteSnapshot`, `AthleteStatisticsReport` | `[AIRecommendation]` |
+| `ProgressPredictionServiceProtocol` | `MetricKey`, `[CheckInSnapshot]`, `daysAhead: Int` | `PredictionResult` |
+| `PosingAnalysisServiceProtocol` | `UIImage` | `PoseAnalysisResult` |
+| `BodySymmetryServiceProtocol` | `UIImage` | `SymmetryAnalysisResult` |
+| `PhotoComparisonServiceProtocol` | `UIImage`, `UIImage` | `PhotoComparisonResult` |
+
+Tipos de datos relevantes definidos en los protocolos:
+- `AIRecommendation` — `id: UUID`, `category: RecommendationCategory`, `title`, `detail`, `priority: RecommendationPriority`, `generatedAt: Date`
+- `RecommendationCategory` — `.bodyComposition`, `.checkInFrequency`, `.photography`, `.nutrition`, `.training`
+- `RecommendationPriority: Int, Comparable` — `.low = 0`, `.medium = 1`, `.high = 2`
+- `PredictionResult` — `metric: MetricKey`, `predictedValue: Double`, `confidenceInterval: ClosedRange<Double>`, `targetDate: Date`, `modelConfidence: Double`
+
+### AutoRecommendationStub
+Stub completamente determinístico basado en reglas (NO es ML). Evalúa señales de los trends del `AthleteStatisticsReport`:
+
+| Señal | Condición | Categoría | Prioridad |
+|---|---|---|---|
+| Grasa corporal subiendo | `bodyFatTrend.slope * 30 > 0.3` | `.bodyComposition` | `.high` |
+| Masa muscular bajando | `muscleMassTrend.slope * 30 < -0.2` | `.bodyComposition` | `.high` |
+| Frecuencia baja | `averageDaysBetweenCheckIns > 21` | `.checkInFrequency` | `.medium` |
+
+IDs de recomendaciones son UUIDs estables (hardcodeados) para garantizar determinismo. Clock es injectable para tests.
+
+```swift
+struct AutoRecommendationStub: AutoRecommendationServiceProtocol {
+    let clock: @Sendable () -> Date
+    init(clock: @Sendable @escaping () -> Date = { Date() }) { ... }
+    func generateRecommendations(athlete: AthleteSnapshot, statistics: AthleteStatisticsReport) async throws -> [AIRecommendation]
+}
+```
+
+### ProgressPredictionStub
+Extrapolación lineal OLS usando la misma infraestructura `Trend.compute()` + `Trend.projected()` del `StatisticsEngine`:
+
+```swift
+struct ProgressPredictionStub: ProgressPredictionServiceProtocol {
+    func predict(metric: MetricKey, snapshots: [CheckInSnapshot], daysAhead: Int) async throws -> PredictionResult
+}
+```
+
+- Error residual crece con el horizonte de predicción: `stdErr = sqrt(mse) * (1 + daysAhead/30)`
+- Confianza cap: `min(0.80, count/10)` — nunca implica certeza alta
+- `extractPoints()` reimplementa el switch de métricas de `StatisticsEngine` (ese método es `private`)
+
+### CV Stubs (infraestructura futura)
+`PosingAnalysisStub`, `BodySymmetryStub`, `PhotoComparisonStub` devuelven resultados neutros/vacíos. No hay infraestructura de Vision/CoreML aún — son placeholders para las fases de Computer Vision.
+
+### Tests (25 nuevos, 155/155 total)
+**Fix crítico de Swift 6:** Todos los test suites deben ser `@MainActor`. Sin él, las conformancias `async throws` de los stubs son vistas como main-actor-isolated en contexto nonisolated, lo que causa un crash del test runner (Mach error -308). Además, los valores default de parámetros tipo `Trend = .insufficient` se evalúan en contexto nonisolated — se cambiaron a `Trend? = nil` con `?? .insufficient` dentro del cuerpo `@MainActor`.
+
+| Suite | Tests |
+|---|---|
+| `AutoRecommendationStubTests` | 12 |
+| `ProgressPredictionStubTests` | 13 |
+
+**AutoRecommendationStubTests** cubre: conformance, checkInCount 0/1/<2, rising fat signal, small fat no-signal, falling muscle signal, avgDays>21 signal, avgDays≤21 no-signal, priority sort descending, determinism (IDs estables), generatedAt matches clock.
+
+**ProgressPredictionStubTests** cubre: conformance, zeroDaysAhead throws, empty snapshots throws, single snapshot throws, no data for metric throws, rising/falling/flat trend, CI contains prediction, confidence in [0, 0.80], metric correct en result, targetDate correcto, determinism.
+
+---
+
 ## Estado del proyecto al finalizar la sesión
 
 ### Commits en main (más recientes primero)
 ```
+470efb1 Phase 32: AIEngine contracts, stubs, and tests (155/155 passing)
 8740357 Phase 31: Wire CoachPreferencesStore into domain engines
 37533d9 Phase 30: CoachPreferences editor in SettingsView
 [prev]  Phase 28: NotesEditSheet — inline notes editing for CheckIn
@@ -353,15 +449,21 @@ GYM_APPApp
 | `DashboardViewModel.buildProgressors` | `progressWindowDays` |
 | `DashboardViewModel.buildPendingActions` | `inactivityThresholdDays` |
 
-### Tests — estado actual
+### Tests — estado actual (155/155 pasan)
 | Suite | Tests | Estado |
 |---|---|---|
+| `AutoRecommendationStubTests` | 12 | ✅ pasan (Phase 32) |
+| `ProgressPredictionStubTests` | 13 | ✅ pasan (Phase 32) |
 | `AthleteAlertEvaluatorTests` | 14 | ✅ pasan |
 | `DashboardFilterTests` | 11 | ✅ pasan |
 | `AthleteReportSerializerTests` | 10 | ✅ pasan |
-| `StatisticsEngineTests` | ~20 | ✅ pasan (sin cambios) |
 | `CheckInComparisonEngineTests` | ~15 | ✅ pasan (sin cambios) |
+| `CheckInWorkflowIntegrationTests` | 6 | ✅ pasan (sin cambios) |
+| `PhotoLimitsTests` | 10 | ✅ pasan (sin cambios) |
+| `OrphanSweepTests` | 5 | ✅ pasan (sin cambios) |
+| `FoodMacrosCalculatorTests` | 11 | ✅ pasan (sin cambios) |
 | `TimelineBuilderTests` | ~10 | ✅ pasan (sin cambios) |
+| `StatisticsEngineTests` | ~20 | ✅ pasan (sin cambios) |
 
 ---
 
@@ -377,9 +479,20 @@ GYM_APPApp
 
 ---
 
+## Regla crítica de Swift 6 descubierta en Phase 32
+
+**Todo `@Suite` struct debe ser `@MainActor` en este proyecto.**
+
+Sin `@MainActor`, llamar `await stub.asyncMethod()` desde un test nonisolated falla con Mach error -308 porque Swift 6 ve las conformancias async como main-actor-isolated (la mayoría de tipos del app module son `@MainActor @Observable`).
+
+**Además:** Los valores default de parámetros se evalúan en contexto nonisolated. Si un default es `Trend = .insufficient` (donde `Trend.insufficient` puede ser inferred como main-actor), cambiarlo a `Trend? = nil` con `?? .insufficient` dentro del cuerpo `@MainActor` corrige el warning.
+
+---
+
 ## Próximas fases sugeridas (no implementadas)
 
-- **Phase 32:** Implementar los protocolos de AIEngine (`AutoRecommendationServiceProtocol`, `ProgressPredictionServiceProtocol`, etc.) con implementaciones stub + test suite
 - **Phase 33:** `preferredWeightUnit` / `preferredLengthUnit` del store aplicado a la UI — formatear pesos y medidas según la preferencia del coach en todas las vistas
-- **Phase 34:** Cobertura de tests para `AthleteReportBuilder` + `CheckInComparisonEngine` edge cases
-- **Phase 35:** Notification center para alertas críticas (atletas con severidad 3+)
+- **Phase 34:** Conectar `AutoRecommendationStub` al `AthleteOverviewViewModel` — mostrar recomendaciones en `AthleteDetailView` bajo la sección Overview
+- **Phase 35:** Cobertura de tests para `AthleteReportBuilder` + edge cases de `CheckInComparisonEngine`
+- **Phase 36:** `ProgressPredictionStub` expuesto en la UI — sección "Proyecciones" en AthleteDetailView con gráfica de tendencia + predicción
+- **Phase 37:** Notification center para alertas críticas (atletas con severidad 3+)
