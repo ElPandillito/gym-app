@@ -10,7 +10,8 @@ struct DashboardView: View {
     @Query(sort: \Athlete.name)       private var athletes:   [Athlete]
     @Query(sort: \CheckIn.date, order: .reverse) private var checkIns: [CheckIn]
 
-    @State private var viewModel = DashboardViewModel()
+    @State   private var viewModel  = DashboardViewModel()
+    @Environment(CoachPreferencesStore.self) private var prefsStore
 
     private let filterCases: [DashboardFilter] = [.all, .active, .inactive, .competition, .bulk, .cut]
 
@@ -31,10 +32,15 @@ struct DashboardView: View {
             }
         }
         .navigationTitle("Dashboard")
-        .onAppear     { viewModel.load(athletes: athletes, checkIns: checkIns) }
-        .onChange(of: athletes)  { viewModel.load(athletes: athletes, checkIns: checkIns) }
-        .onChange(of: checkIns)  { viewModel.load(athletes: athletes, checkIns: checkIns) }
-        .onChange(of: viewModel.activeFilter) { viewModel.load(athletes: athletes, checkIns: checkIns) }
+        .onAppear     { reload() }
+        .onChange(of: athletes)               { reload() }
+        .onChange(of: checkIns)               { reload() }
+        .onChange(of: viewModel.activeFilter) { reload() }
+        .onChange(of: prefsStore.preferences) { reload() }
+    }
+
+    private func reload() {
+        viewModel.load(athletes: athletes, checkIns: checkIns, preferences: prefsStore.preferences)
     }
 
     // MARK: - Filter Bar
@@ -492,5 +498,6 @@ private struct FilterChip: View {
         DashboardView()
     }
     .modelContainer(for: [Athlete.self, CheckIn.self], inMemory: true)
+    .environment(CoachPreferencesStore())
     .previewDevice(PreviewDevice(rawValue: "iPhone 16"))
 }

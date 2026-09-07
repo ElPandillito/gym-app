@@ -12,6 +12,7 @@ struct AthleteDetailView: View {
     @State private var isShowingComparisonPicker = false
     @State private var isShowingReport = false
     @State private var overviewViewModel = AthleteOverviewViewModel()
+    @Environment(CoachPreferencesStore.self) private var prefsStore
 
     enum AthleteSection: String, CaseIterable {
         case overview   = "Resumen"
@@ -63,13 +64,16 @@ struct AthleteDetailView: View {
             )
         }
         .onAppear {
-            overviewViewModel.build(from: athlete)
+            overviewViewModel.build(from: athlete, preferences: prefsStore.preferences)
         }
         .onChange(of: athlete.checkIns.count) { _, _ in
-            overviewViewModel.build(from: athlete)
+            overviewViewModel.build(from: athlete, preferences: prefsStore.preferences)
         }
         .onChange(of: latestCheckInUpdatedAt) { _, _ in
-            overviewViewModel.build(from: athlete)
+            overviewViewModel.build(from: athlete, preferences: prefsStore.preferences)
+        }
+        .onChange(of: prefsStore.preferences) { _, _ in
+            overviewViewModel.build(from: athlete, preferences: prefsStore.preferences)
         }
     }
 
@@ -351,5 +355,6 @@ private struct InfoRow: View {
         AthleteDetailView(athlete: athlete)
     }
     .modelContainer(for: Athlete.self, inMemory: true)
+    .environment(CoachPreferencesStore())
     .previewDevice(PreviewDevice(rawValue: "iPhone 16"))
 }

@@ -101,6 +101,7 @@ struct AthleteListView: View {
 
 struct AthleteRowView: View {
     let athlete: Athlete
+    @Environment(CoachPreferencesStore.self) private var prefsStore
 
     var body: some View {
         HStack(spacing: 12) {
@@ -159,7 +160,7 @@ struct AthleteRowView: View {
             athleteID:      athlete.id,
             athleteName:    athlete.name,
             sortedCheckIns: snapshots,
-            preferences:    CoachPreferences.default,
+            preferences:    prefsStore.preferences,
             now:            Date()
         ).first else { return nil }
         switch top.severity {
@@ -183,5 +184,6 @@ struct AthleteRowView: View {
         AthleteListView()
     }
     .modelContainer(for: Athlete.self, inMemory: true)
+    .environment(CoachPreferencesStore())
     .previewDevice(PreviewDevice(rawValue: "iPhone 16"))
 }

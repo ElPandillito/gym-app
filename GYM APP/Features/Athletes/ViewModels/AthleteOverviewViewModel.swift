@@ -60,7 +60,7 @@ final class AthleteOverviewViewModel {
 
     // MARK: - Build (called once per athlete change)
 
-    func build(from athlete: Athlete) {
+    func build(from athlete: Athlete, preferences: CoachPreferences = .default) {
         let now     = Date()
         let sorted  = athlete.checkIns.sorted { $0.date < $1.date }
         let latest  = sorted.last
@@ -136,7 +136,7 @@ final class AthleteOverviewViewModel {
             athleteID:      athlete.id,
             athleteName:    athlete.name,
             sortedCheckIns: snapshots,
-            preferences:    CoachPreferences.default,
+            preferences:    preferences,
             now:            now
         )
 

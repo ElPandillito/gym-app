@@ -94,19 +94,19 @@ final class DashboardViewModel {
     var isLoading                                = false
     var activeFilter: DashboardFilter            = .all
 
-    // MARK: - Thresholds
+    // MARK: - Thresholds (non-preference UI caps)
 
-    private let inactivityDays     = 14
-    private let trendWindowDays    = 60
-    private let progressWindowDays = 30
-    private let maxAlerts          = 10
-    private let maxProgressors     = 5
-    private let maxRecent          = 10
-    private let maxActions         = 10
+    private let maxProgressors = 5
+    private let maxRecent      = 10
+    private let maxActions     = 10
+
+    // Preference snapshot — updated each load(); private methods read from this.
+    private var preferences: CoachPreferences = .default
 
     // MARK: - Load
 
-    func load(athletes: [Athlete], checkIns: [CheckIn]) {
+    func load(athletes: [Athlete], checkIns: [CheckIn], preferences: CoachPreferences = .default) {
+        self.preferences = preferences
         guard !athletes.isEmpty else { reset(); return }
         isLoading = true
         defer { isLoading = false }
@@ -118,7 +118,7 @@ final class DashboardViewModel {
             filtered    = athletes
             filteredCIs = checkIns
         } else {
-            filtered        = activeFilter.apply(to: athletes, checkIns: checkIns, preferences: CoachPreferences.default)
+            filtered        = activeFilter.apply(to: athletes, checkIns: checkIns, preferences: preferences)
             let filteredIDs = Set(filtered.map { $0.id })
             filteredCIs     = checkIns.filter { ci in
                 ci.athlete.map { filteredIDs.contains($0.id) } ?? false
@@ -257,17 +257,16 @@ final class DashboardViewModel {
         ctx: LoadContext
     ) -> [DashboardAlert] {
         var result: [DashboardAlert] = []
-        let prefs = CoachPreferences.default
 
         for athlete in athletes {
-            guard result.count < maxAlerts else { break }
+            guard result.count < preferences.maxAlertsShown else { break }
             let snapshots = (ctx.ciByAthlete[athlete.id] ?? []).map(CheckInSnapshot.init)
             // Dashboard shows at most one alert per athlete (highest severity)
             if let alert = AthleteAlertEvaluator.evaluate(
                 athleteID:      athlete.id,
                 athleteName:    athlete.name,
                 sortedCheckIns: snapshots,
-                preferences:    prefs,
+                preferences:    preferences,
                 now:            ctx.now
             ).first {
                 result.append(alert)
@@ -283,7 +282,7 @@ final class DashboardViewModel {
         athletes: [Athlete],
         ctx: LoadContext
     ) -> [DashboardProgressor] {
-        let progressCutoff = ctx.calendar.date(byAdding: .day, value: -progressWindowDays, to: ctx.now) ?? ctx.now
+        let progressCutoff = ctx.calendar.date(byAdding: .day, value: -preferences.progressWindowDays, to: ctx.now) ?? ctx.now
         var result: [DashboardProgressor] = []
 
         for athlete in athletes {
@@ -343,7 +342,7 @@ final class DashboardViewModel {
             let daysSince = ctx.daysSinceLatestByID[athlete.id] ?? Int.max
             let sorted    = ctx.ciByAthlete[athlete.id] ?? []
 
-            if daysSince >= inactivityDays {
+            if daysSince >= preferences.inactivityThresholdDays {
                 result.append(.init(athleteID: athlete.id, athleteName: athlete.name,
                                     kind: .requestCheckIn))
             } else if snap.bodyMetrics?.bodyWeight == nil {
