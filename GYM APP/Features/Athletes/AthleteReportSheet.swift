@@ -10,6 +10,9 @@ struct AthleteReportSheet: View {
     let statisticsReport: AthleteStatisticsReport?
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(CoachPreferencesStore.self) private var prefsStore
+
+    private var fmt: AppUnitFormatter { AppUnitFormatter(preferences: prefsStore.preferences) }
 
     private var report: AthleteReport? {
         guard let stats = statisticsReport else { return nil }
@@ -43,7 +46,7 @@ struct AthleteReportSheet: View {
                 if let r = report {
                     ToolbarItem(placement: .primaryAction) {
                         ShareLink(
-                            item: AthleteReportSerializer.text(from: r),
+                            item: AthleteReportSerializer.text(from: r, preferences: prefsStore.preferences),
                             preview: SharePreview(
                                 "Reporte del atleta",
                                 icon: Image(systemName: "doc.text.fill")
@@ -83,7 +86,7 @@ struct AthleteReportSheet: View {
                     labelRow("Edad", "\(Int(age)) años")
                 }
                 if let h = a.heightCm {
-                    labelRow("Estatura", String(format: "%.0f cm", h))
+                    labelRow("Estatura", fmt.height(h))
                 }
                 labelRow(
                     "Generado",
@@ -114,9 +117,9 @@ struct AthleteReportSheet: View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
             AppSectionHeader("Tendencias", icon: "chart.line.uptrend.xyaxis")
             VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                trendRow("Peso",          stats.weightTrend,     unit: "kg")
-                trendRow("% Grasa",       stats.bodyFatTrend,    unit: "%")
-                trendRow("Masa muscular", stats.muscleMassTrend, unit: "kg")
+                trendRow("Peso",          stats.weightTrend,     metric: .weight)
+                trendRow("% Grasa",       stats.bodyFatTrend,    metric: .percentage)
+                trendRow("Masa muscular", stats.muscleMassTrend, metric: .weight)
             }
             .cardStyle()
         }
@@ -124,20 +127,24 @@ struct AthleteReportSheet: View {
 
     @ViewBuilder
     private func recordsSection(_ stats: AthleteStatisticsReport) -> some View {
-        let available: [(String, MetricRecord)] = [
-            ("Menor % grasa",      stats.lowestBodyFat),
-            ("Mayor % grasa",      stats.highestBodyFat),
-            ("Menor peso",         stats.lowestWeight),
-            ("Mayor peso",         stats.highestWeight),
-            ("Pico masa muscular", stats.peakMuscleMass),
-        ].compactMap { pair in pair.1.map { (pair.0, $0) } }
+        let raw: [(String, MetricRecord?, Bool)] = [
+            ("Menor % grasa",      stats.lowestBodyFat,  false),
+            ("Mayor % grasa",      stats.highestBodyFat, false),
+            ("Menor peso",         stats.lowestWeight,   true),
+            ("Mayor peso",         stats.highestWeight,  true),
+            ("Pico masa muscular", stats.peakMuscleMass, true),
+        ]
+        let available = raw.compactMap { (label, record, isWeight) -> (String, MetricRecord, Bool)? in
+            guard let r = record else { return nil }
+            return (label, r, isWeight)
+        }
 
         if !available.isEmpty {
             VStack(alignment: .leading, spacing: AppSpacing.sm) {
                 AppSectionHeader("Marcas Personales", icon: "trophy.fill")
                 VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                    ForEach(Array(available.enumerated()), id: \.offset) { _, pair in
-                        recordRow(pair.0, pair.1)
+                    ForEach(Array(available.enumerated()), id: \.offset) { _, tuple in
+                        recordRow(tuple.0, tuple.1, isWeight: tuple.2)
                     }
                 }
                 .cardStyle()
@@ -159,25 +166,33 @@ struct AthleteReportSheet: View {
         }
     }
 
-    private func trendRow(_ label: String, _ trend: Trend, unit: String) -> some View {
+    private enum TrendMetric { case weight, percentage }
+
+    private func trendRow(_ label: String, _ trend: Trend, metric: TrendMetric) -> some View {
         HStack {
             Text(label)
                 .font(AppTypography.subheadline)
                 .foregroundStyle(AppColors.secondaryText)
             Spacer()
-            trendBadge(trend, unit: unit)
+            trendBadge(trend, metric: metric)
         }
     }
 
     @ViewBuilder
-    private func trendBadge(_ trend: Trend, unit: String) -> some View {
+    private func trendBadge(_ trend: Trend, metric: TrendMetric) -> some View {
         switch trend.direction {
         case .rising:
-            Label(String(format: "+%.2f %@/mes", trend.slope * 30, unit), systemImage: "arrow.up.right")
+            let rate: String = metric == .weight
+                ? String(format: "+%.2f \(fmt.weightLabel)/mes", fmt.convertedWeight(trend.slope * 30))
+                : String(format: "+%.2f %%/mes", trend.slope * 30)
+            Label(rate, systemImage: "arrow.up.right")
                 .font(AppTypography.caption.weight(.medium))
                 .foregroundStyle(AppColors.Trend.rising)
         case .falling:
-            Label(String(format: "%.2f %@/mes", trend.slope * 30, unit), systemImage: "arrow.down.right")
+            let rate: String = metric == .weight
+                ? String(format: "%.2f \(fmt.weightLabel)/mes", fmt.convertedWeight(trend.slope * 30))
+                : String(format: "%.2f %%/mes", trend.slope * 30)
+            Label(rate, systemImage: "arrow.down.right")
                 .font(AppTypography.caption.weight(.medium))
                 .foregroundStyle(AppColors.Trend.falling)
         case .flat:
@@ -191,14 +206,14 @@ struct AthleteReportSheet: View {
         }
     }
 
-    private func recordRow(_ label: String, _ record: MetricRecord) -> some View {
+    private func recordRow(_ label: String, _ record: MetricRecord, isWeight: Bool) -> some View {
         HStack {
             Text(label)
                 .font(AppTypography.subheadline)
                 .foregroundStyle(AppColors.secondaryText)
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
-                Text(String(format: "%.1f", record.value))
+                Text(isWeight ? fmt.weight(record.value) : String(format: "%.1f", record.value))
                     .font(AppTypography.subheadline.weight(.semibold).monospacedDigit())
                     .foregroundStyle(AppColors.primaryText)
                 Text(record.date.formatted(.dateTime.month(.abbreviated).day().year()))

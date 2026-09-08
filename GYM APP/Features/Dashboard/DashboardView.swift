@@ -13,6 +13,8 @@ struct DashboardView: View {
     @State   private var viewModel  = DashboardViewModel()
     @Environment(CoachPreferencesStore.self) private var prefsStore
 
+    private var fmt: AppUnitFormatter { AppUnitFormatter(preferences: prefsStore.preferences) }
+
     private let filterCases: [DashboardFilter] = [.all, .active, .inactive, .competition, .bulk, .cut]
 
     var body: some View {
@@ -104,8 +106,8 @@ struct DashboardView: View {
                 )
                 MetricCard(
                     title: "Peso Prom.",
-                    value: viewModel.kpis.averageWeight.map { String(format: "%.1f", $0) } ?? "—",
-                    unit: viewModel.kpis.averageWeight != nil ? "kg" : nil,
+                    value: viewModel.kpis.averageWeight.map { String(format: "%.1f", fmt.convertedWeight($0)) } ?? "—",
+                    unit: viewModel.kpis.averageWeight != nil ? fmt.weightLabel : nil,
                     icon: "scalemass.fill",
                     tintColor: AppColors.warning
                 )
@@ -281,6 +283,9 @@ struct DashboardView: View {
 
 private struct RecentCheckInRow: View {
     let item: DashboardRecentCheckIn
+    @Environment(CoachPreferencesStore.self) private var prefsStore
+
+    private var fmt: AppUnitFormatter { AppUnitFormatter(preferences: prefsStore.preferences) }
 
     var body: some View {
         HStack(alignment: .center, spacing: AppSpacing.sm) {
@@ -303,7 +308,7 @@ private struct RecentCheckInRow: View {
                 }
                 if let w = item.weight {
                     VStack(alignment: .trailing, spacing: 0) {
-                        Text(String(format: "%.1f kg", w))
+                        Text(fmt.weight(w))
                             .font(AppTypography.footnote.weight(.medium))
                             .foregroundStyle(AppColors.primaryText)
                         if let delta = item.weightChangeDelta {
@@ -320,8 +325,7 @@ private struct RecentCheckInRow: View {
     }
 
     private func deltaLabel(_ d: Double) -> String {
-        let sign = d > 0 ? "+" : ""
-        return "\(sign)\(String(format: "%.1f", d)) kg"
+        return fmt.weightDelta(d)
     }
 
     private func deltaColor(_ d: Double) -> Color {

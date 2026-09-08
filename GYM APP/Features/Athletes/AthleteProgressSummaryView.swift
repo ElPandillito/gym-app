@@ -7,6 +7,9 @@ import SwiftUI
 
 struct AthleteProgressSummaryView: View {
     let summary: AthleteOverviewViewModel.ProgressSummary?
+    @Environment(CoachPreferencesStore.self) private var prefsStore
+
+    private var fmt: AppUnitFormatter { AppUnitFormatter(preferences: prefsStore.preferences) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
@@ -37,21 +40,21 @@ struct AthleteProgressSummaryView: View {
                     deltaColumn(
                         label: "Peso",
                         diff: summary.weightDiff,
-                        unit: "kg",
+                        metricUnit: .weight,
                         sentiment: .neutral
                     )
                     columnDivider
                     deltaColumn(
                         label: "% Grasa",
                         diff: summary.bodyFatDiff,
-                        unit: "%",
+                        metricUnit: .percentage,
                         sentiment: .positiveWhenDecreased
                     )
                     columnDivider
                     deltaColumn(
                         label: "Cintura",
                         diff: summary.waistDiff,
-                        unit: "cm",
+                        metricUnit: .length,
                         sentiment: .positiveWhenDecreased
                     )
                 }
@@ -86,10 +89,12 @@ struct AthleteProgressSummaryView: View {
 
     // MARK: - Delta column
 
+    private enum MetricUnit { case weight, length, percentage }
+
     private func deltaColumn(
         label: String,
         diff: MetricDiff,
-        unit: String,
+        metricUnit: MetricUnit,
         sentiment: MetricSentiment
     ) -> some View {
         VStack(spacing: AppSpacing.xs) {
@@ -97,7 +102,7 @@ struct AthleteProgressSummaryView: View {
                 .font(AppTypography.caption2)
                 .foregroundStyle(AppColors.secondaryText)
 
-            Text(deltaText(diff: diff, unit: unit))
+            Text(deltaText(diff: diff, metricUnit: metricUnit))
                 .font(AppTypography.footnote.weight(.semibold).monospacedDigit())
                 .foregroundStyle(deltaColor(diff: diff, sentiment: sentiment))
                 .lineLimit(1)
@@ -112,15 +117,17 @@ struct AthleteProgressSummaryView: View {
 
     // MARK: - Formatting helpers
 
-    private func deltaText(diff: MetricDiff, unit: String) -> String {
+    private func deltaText(diff: MetricDiff, metricUnit: MetricUnit) -> String {
         guard let delta = diff.absoluteChange, diff.direction != .unavailable else { return "—" }
         if diff.direction == .unchanged { return "=" }
-        let sign = delta > 0 ? "+" : ""
-        switch unit {
-        case "kg":  return "\(sign)\(String(format: "%.1f", delta)) kg"
-        case "%":   return "\(sign)\(String(format: "%.1f", delta))%"
-        case "cm":  return "\(sign)\(String(format: "%.1f", delta)) cm"
-        default:    return "\(sign)\(String(format: "%.1f", delta)) \(unit)"
+        switch metricUnit {
+        case .weight:
+            return fmt.weightDelta(delta)
+        case .length:
+            return fmt.lengthDelta(delta)
+        case .percentage:
+            let sign = delta > 0 ? "+" : ""
+            return "\(sign)\(String(format: "%.1f", delta))%"
         }
     }
 

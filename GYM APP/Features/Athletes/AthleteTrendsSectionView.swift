@@ -9,6 +9,9 @@ import SwiftUI
 
 struct AthleteTrendsSectionView: View {
     let report: AthleteStatisticsReport
+    @Environment(CoachPreferencesStore.self) private var prefsStore
+
+    private var fmt: AppUnitFormatter { AppUnitFormatter(preferences: prefsStore.preferences) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
@@ -55,7 +58,7 @@ struct AthleteTrendsSectionView: View {
     fileprivate struct TrendEntry {
         let label: String
         let trend: Trend
-        let unit: String
+        let rateLabel: String               // pre-formatted monthly rate, e.g. "+0.4 kg/mes"
         let positiveWhenIncreasing: Bool?   // nil = neutral (weight)
     }
 
@@ -68,13 +71,30 @@ struct AthleteTrendsSectionView: View {
     private var trendEntries: [TrendEntry] {
         var entries: [TrendEntry] = []
         if report.weightTrend.direction != .insufficient {
-            entries.append(.init(label: "Peso", trend: report.weightTrend, unit: "kg", positiveWhenIncreasing: nil))
+            entries.append(.init(
+                label: "Peso",
+                trend: report.weightTrend,
+                rateLabel: fmt.weightSlopeMonthly(report.weightTrend.slope),
+                positiveWhenIncreasing: nil
+            ))
         }
         if report.bodyFatTrend.direction != .insufficient {
-            entries.append(.init(label: "Grasa Corporal", trend: report.bodyFatTrend, unit: "%", positiveWhenIncreasing: false))
+            let monthly = report.bodyFatTrend.slope * 30
+            let sign    = monthly > 0 ? "+" : ""
+            entries.append(.init(
+                label: "Grasa Corporal",
+                trend: report.bodyFatTrend,
+                rateLabel: "\(sign)\(String(format: "%.1f", monthly)) %/mes",
+                positiveWhenIncreasing: false
+            ))
         }
         if report.muscleMassTrend.direction != .insufficient {
-            entries.append(.init(label: "Masa Muscular", trend: report.muscleMassTrend, unit: "kg", positiveWhenIncreasing: true))
+            entries.append(.init(
+                label: "Masa Muscular",
+                trend: report.muscleMassTrend,
+                rateLabel: fmt.weightSlopeMonthly(report.muscleMassTrend.slope),
+                positiveWhenIncreasing: true
+            ))
         }
         return entries
     }
@@ -85,13 +105,13 @@ struct AthleteTrendsSectionView: View {
             entries.append(.init(label: "Mínima Grasa Corporal", value: String(format: "%.1f%%", r.value), date: r.date))
         }
         if let r = report.peakMuscleMass {
-            entries.append(.init(label: "Máxima Masa Muscular", value: String(format: "%.1f kg", r.value), date: r.date))
+            entries.append(.init(label: "Máxima Masa Muscular", value: fmt.weight(r.value), date: r.date))
         }
         if let r = report.lowestWeight {
-            entries.append(.init(label: "Mínimo Peso", value: String(format: "%.1f kg", r.value), date: r.date))
+            entries.append(.init(label: "Mínimo Peso", value: fmt.weight(r.value), date: r.date))
         }
         if let r = report.highestWeight {
-            entries.append(.init(label: "Máximo Peso", value: String(format: "%.1f kg", r.value), date: r.date))
+            entries.append(.init(label: "Máximo Peso", value: fmt.weight(r.value), date: r.date))
         }
         return entries
     }
@@ -117,7 +137,7 @@ private struct TrendRow: View {
                 Image(systemName: directionIcon)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(directionColor)
-                Text(rateLabel)
+                Text(entry.rateLabel)
                     .font(AppTypography.caption.monospacedDigit())
                     .foregroundStyle(directionColor)
             }
@@ -155,13 +175,6 @@ private struct TrendRow: View {
             guard let positive = entry.positiveWhenIncreasing else { return AppColors.Trend.flat }
             return positive ? AppColors.Trend.falling : AppColors.Trend.rising
         }
-    }
-
-    // Monthly rate of change from OLS slope (slope is per-day)
-    private var rateLabel: String {
-        let monthly = entry.trend.slope * 30
-        let sign    = monthly > 0 ? "+" : ""
-        return "\(sign)\(String(format: "%.1f", monthly)) \(entry.unit)/mes"
     }
 }
 

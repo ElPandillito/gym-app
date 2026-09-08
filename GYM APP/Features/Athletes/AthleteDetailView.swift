@@ -296,6 +296,7 @@ private struct AthleteActivePlanCard: View {
 
 private struct AthleteInfoSectionView: View {
     let athlete: Athlete
+    @Environment(CoachPreferencesStore.self) private var prefsStore
 
     var body: some View {
         List {
@@ -325,7 +326,7 @@ private struct AthleteInfoSectionView: View {
 
     private var heightText: String {
         guard let h = athlete.height else { return "—" }
-        return String(format: "%.1f cm", h)
+        return AppUnitFormatter(preferences: prefsStore.preferences).height(h)
     }
 
     private var lastCheckInText: String {

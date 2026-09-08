@@ -7,6 +7,9 @@ import SwiftUI
 
 struct AthleteCurrentMetricsView: View {
     let metrics: AthleteOverviewViewModel.CurrentMetrics
+    @Environment(CoachPreferencesStore.self) private var prefsStore
+
+    private var fmt: AppUnitFormatter { AppUnitFormatter(preferences: prefsStore.preferences) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
@@ -23,8 +26,8 @@ struct AthleteCurrentMetricsView: View {
             if let w = metrics.weight {
                 MetricCard(
                     title: "Peso",
-                    value: String(format: "%.1f", w),
-                    unit: "kg",
+                    value: String(format: "%.1f", fmt.convertedWeight(w)),
+                    unit: fmt.weightLabel,
                     icon: "scalemass.fill",
                     tintColor: AppColors.accent
                 )
@@ -43,8 +46,8 @@ struct AthleteCurrentMetricsView: View {
             if let mm = metrics.muscleMass {
                 MetricCard(
                     title: "Masa Magra",
-                    value: String(format: "%.1f", mm),
-                    unit: "kg",
+                    value: String(format: "%.1f", fmt.convertedWeight(mm)),
+                    unit: fmt.weightLabel,
                     icon: "figure.strengthtraining.traditional",
                     tintColor: AppColors.success
                 )
