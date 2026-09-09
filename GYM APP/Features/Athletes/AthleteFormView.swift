@@ -9,6 +9,9 @@ import SwiftData
 struct AthleteFormView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
+    @Environment(CoachPreferencesStore.self) private var prefsStore
+
+    private var fmt: AppUnitFormatter { AppUnitFormatter(preferences: prefsStore.preferences) }
 
     @State private var viewModel: AthleteFormViewModel
 
@@ -46,12 +49,12 @@ struct AthleteFormView: View {
 
                 Section("Medidas") {
                     HStack {
-                        TextField("Estatura (cm)", text: $viewModel.heightText)
+                        TextField("Estatura (\(fmt.lengthLabel))", text: $viewModel.heightText)
                             #if os(iOS)
                             .keyboardType(.decimalPad)
                             #endif
                             .onChange(of: viewModel.heightText) { _, _ in viewModel.validateHeight() }
-                        Text("cm")
+                        Text(fmt.lengthLabel)
                             .foregroundStyle(.secondary)
                     }
 
@@ -76,6 +79,7 @@ struct AthleteFormView: View {
                 }
             }
             .navigationTitle(viewModel.title)
+            .onAppear { viewModel.apply(preferences: prefsStore.preferences) }
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif

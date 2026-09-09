@@ -101,4 +101,22 @@ struct AppUnitFormatter: Sendable {
         guard let cm else { return "—" }
         return height(cm)
     }
+
+    // MARK: - Input → Canonical (inverse conversions for input forms)
+
+    /// Converts a user-entered value (in the preferred weight unit) back to canonical kilograms.
+    func toCanonicalWeight(_ displayValue: Double) -> Double {
+        switch preferences.preferredWeightUnit {
+        case .kg: return displayValue
+        case .lb: return displayValue / 2.20462
+        }
+    }
+
+    /// Converts a user-entered value (in the preferred length unit) back to canonical centimeters.
+    func toCanonicalLength(_ displayValue: Double) -> Double {
+        switch preferences.preferredLengthUnit {
+        case .cm:     return displayValue
+        case .inches: return displayValue / 0.393701
+        }
+    }
 }

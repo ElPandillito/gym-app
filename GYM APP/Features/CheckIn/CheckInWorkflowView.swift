@@ -9,6 +9,9 @@ import SwiftData
 struct CheckInWorkflowView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss)      private var dismiss
+    @Environment(CoachPreferencesStore.self) private var prefsStore
+
+    private var fmt: AppUnitFormatter { AppUnitFormatter(preferences: prefsStore.preferences) }
 
     @State private var viewModel: CheckInWorkflowViewModel
 
@@ -72,8 +75,14 @@ struct CheckInWorkflowView: View {
             .onChange(of: viewModel.savedCheckIn) { _, saved in
                 if saved != nil { dismiss() }
             }
+            .onAppear {
+                viewModel.apply(preferences: prefsStore.preferences)
+            }
+            .onChange(of: prefsStore.preferences) { _, prefs in
+                viewModel.apply(preferences: prefs)
+            }
             .onChange(of: viewModel.bodyMetrics.weightText) { _, newText in
-                viewModel.skinfolds.bodyWeightKg = newText.asPositiveDouble
+                viewModel.skinfolds.bodyWeightKg = newText.asPositiveDouble.map { fmt.toCanonicalWeight($0) }
             }
             .onChange(of: viewModel.anthropometryProfile) { _, _ in
                 viewModel.profileDidChange()
@@ -236,7 +245,7 @@ struct CheckInWorkflowView: View {
             }
 
             Section {
-                WorkflowMetricRow(label: "Peso", text: $viewModel.bodyMetrics.weightText, unit: "kg")
+                WorkflowMetricRow(label: "Peso", text: $viewModel.bodyMetrics.weightText, unit: fmt.weightLabel)
                 HStack {
                     Text("IMC")
                     Spacer()
@@ -269,9 +278,9 @@ struct CheckInWorkflowView: View {
 
             Section("Composición Corporal") {
                 WorkflowMetricRow(label: "% Grasa corporal", text: $viewModel.bodyMetrics.fatPercentageText,    unit: "%")
-                WorkflowMetricRow(label: "Masa muscular",    text: $viewModel.bodyMetrics.muscleMassText,        unit: "kg")
+                WorkflowMetricRow(label: "Masa muscular",    text: $viewModel.bodyMetrics.muscleMassText,        unit: fmt.weightLabel)
                 WorkflowMetricRow(label: "Agua corporal",    text: $viewModel.bodyMetrics.waterPercentageText,   unit: "%")
-                WorkflowMetricRow(label: "Masa ósea",        text: $viewModel.bodyMetrics.boneMassText,          unit: "kg")
+                WorkflowMetricRow(label: "Masa ósea",        text: $viewModel.bodyMetrics.boneMassText,          unit: fmt.weightLabel)
             }
 
             Section("Otros") {
@@ -286,37 +295,37 @@ struct CheckInWorkflowView: View {
     private var circunferenciasStep: some View {
         Form {
             Section("Torso") {
-                WorkflowMetricRow(label: "Cuello",  text: $viewModel.circumferences.neckText,      unit: "cm")
-                WorkflowMetricRow(label: "Hombros", text: $viewModel.circumferences.shouldersText,  unit: "cm")
-                WorkflowMetricRow(label: "Pecho",   text: $viewModel.circumferences.chestText,      unit: "cm")
+                WorkflowMetricRow(label: "Cuello",  text: $viewModel.circumferences.neckText,      unit: fmt.lengthLabel)
+                WorkflowMetricRow(label: "Hombros", text: $viewModel.circumferences.shouldersText,  unit: fmt.lengthLabel)
+                WorkflowMetricRow(label: "Pecho",   text: $viewModel.circumferences.chestText,      unit: fmt.lengthLabel)
             }
             Section("Brazos") {
-                WorkflowMetricRow(label: "Brazo derecho",       text: $viewModel.circumferences.rightArmText,     unit: "cm")
-                WorkflowMetricRow(label: "Brazo izquierdo",     text: $viewModel.circumferences.leftArmText,      unit: "cm")
+                WorkflowMetricRow(label: "Brazo derecho",       text: $viewModel.circumferences.rightArmText,     unit: fmt.lengthLabel)
+                WorkflowMetricRow(label: "Brazo izquierdo",     text: $viewModel.circumferences.leftArmText,      unit: fmt.lengthLabel)
                 if viewModel.anthropometryProfile.isISAK {
-                    WorkflowMetricRow(label: "Brazo contraído (máx.)", text: $viewModel.circumferences.armFlexedTensedText, unit: "cm")
+                    WorkflowMetricRow(label: "Brazo contraído (máx.)", text: $viewModel.circumferences.armFlexedTensedText, unit: fmt.lengthLabel)
                 }
-                WorkflowMetricRow(label: "Antebrazo derecho",   text: $viewModel.circumferences.rightForearmText, unit: "cm")
-                WorkflowMetricRow(label: "Antebrazo izquierdo", text: $viewModel.circumferences.leftForearmText,  unit: "cm")
+                WorkflowMetricRow(label: "Antebrazo derecho",   text: $viewModel.circumferences.rightForearmText, unit: fmt.lengthLabel)
+                WorkflowMetricRow(label: "Antebrazo izquierdo", text: $viewModel.circumferences.leftForearmText,  unit: fmt.lengthLabel)
             }
             Section("Tronco") {
-                WorkflowMetricRow(label: "Cintura",          text: $viewModel.circumferences.waistText,   unit: "cm")
-                WorkflowMetricRow(label: "Abdomen",          text: $viewModel.circumferences.abdomenText, unit: "cm")
-                WorkflowMetricRow(label: "Cadera / Glúteos", text: $viewModel.circumferences.hipsText,    unit: "cm")
+                WorkflowMetricRow(label: "Cintura",          text: $viewModel.circumferences.waistText,   unit: fmt.lengthLabel)
+                WorkflowMetricRow(label: "Abdomen",          text: $viewModel.circumferences.abdomenText, unit: fmt.lengthLabel)
+                WorkflowMetricRow(label: "Cadera / Glúteos", text: $viewModel.circumferences.hipsText,    unit: fmt.lengthLabel)
             }
             Section("Piernas") {
-                WorkflowMetricRow(label: "Muslo derecho",         text: $viewModel.circumferences.rightThighText, unit: "cm")
-                WorkflowMetricRow(label: "Muslo izquierdo",       text: $viewModel.circumferences.leftThighText,  unit: "cm")
-                WorkflowMetricRow(label: "Pantorrilla derecha",   text: $viewModel.circumferences.rightCalfText,  unit: "cm")
-                WorkflowMetricRow(label: "Pantorrilla izquierda", text: $viewModel.circumferences.leftCalfText,   unit: "cm")
+                WorkflowMetricRow(label: "Muslo derecho",         text: $viewModel.circumferences.rightThighText, unit: fmt.lengthLabel)
+                WorkflowMetricRow(label: "Muslo izquierdo",       text: $viewModel.circumferences.leftThighText,  unit: fmt.lengthLabel)
+                WorkflowMetricRow(label: "Pantorrilla derecha",   text: $viewModel.circumferences.rightCalfText,  unit: fmt.lengthLabel)
+                WorkflowMetricRow(label: "Pantorrilla izquierda", text: $viewModel.circumferences.leftCalfText,   unit: fmt.lengthLabel)
             }
 
             if viewModel.anthropometryProfile.isFullProfile {
                 Section {
-                    WorkflowMetricRow(label: "Perímetro cefálico", text: $viewModel.circumferences.headGirthText,    unit: "cm")
-                    WorkflowMetricRow(label: "Muñeca",             text: $viewModel.circumferences.wristGirthText,   unit: "cm")
-                    WorkflowMetricRow(label: "Tobillo",            text: $viewModel.circumferences.ankleGirthText,   unit: "cm")
-                    WorkflowMetricRow(label: "Muslo medio",        text: $viewModel.circumferences.midThighGirthText,unit: "cm")
+                    WorkflowMetricRow(label: "Perímetro cefálico", text: $viewModel.circumferences.headGirthText,     unit: fmt.lengthLabel)
+                    WorkflowMetricRow(label: "Muñeca",             text: $viewModel.circumferences.wristGirthText,    unit: fmt.lengthLabel)
+                    WorkflowMetricRow(label: "Tobillo",            text: $viewModel.circumferences.ankleGirthText,    unit: fmt.lengthLabel)
+                    WorkflowMetricRow(label: "Muslo medio",        text: $viewModel.circumferences.midThighGirthText, unit: fmt.lengthLabel)
                 } header: {
                     Label("Perímetros adicionales ISAK N2", systemImage: "plus.circle")
                 } footer: {
@@ -377,7 +386,7 @@ struct CheckInWorkflowView: View {
 
                     if viewModel.skinfolds.method == .parrillo {
                         if let w = viewModel.bodyMetrics.weightText.asPositiveDouble {
-                            Label(String(format: "Peso: %.2f kg (de Métricas)", w), systemImage: "info.circle")
+                            Label(String(format: "Peso: %.2f \(fmt.weightLabel) (de Métricas)", w), systemImage: "info.circle")
                                 .font(.footnote)
                                 .foregroundStyle(.secondary)
                         } else {
@@ -670,7 +679,7 @@ struct CheckInWorkflowView: View {
                 revisionCheckRow(
                     label: "Métricas corporales",
                     filled: viewModel.hasBodyMetrics,
-                    detail: viewModel.hasBodyMetrics ? viewModel.bodyMetrics.weightText + " kg" : nil
+                    detail: viewModel.hasBodyMetrics ? viewModel.bodyMetrics.weightText + " \(fmt.weightLabel)" : nil
                 )
                 if viewModel.anthropometryProfile.isISAK {
                     let hasSittingH = viewModel.bodyMetrics.sittingHeightText.asPositiveDouble != nil

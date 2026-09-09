@@ -12,6 +12,7 @@ struct ComparisonView: View {
 
     @State private var viewModel = ComparisonViewModel()
     @Environment(\.dismiss) private var dismiss
+    @Environment(CoachPreferencesStore.self) private var prefsStore
 
     var body: some View {
         Group {
@@ -33,7 +34,10 @@ struct ComparisonView: View {
             }
         }
         .onAppear {
-            viewModel.configure(checkInA: checkInA, checkInB: checkInB)
+            viewModel.configure(checkInA: checkInA, checkInB: checkInB, preferences: prefsStore.preferences)
+        }
+        .onChange(of: prefsStore.preferences) { _, prefs in
+            viewModel.reconfigure(preferences: prefs)
         }
     }
 

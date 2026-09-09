@@ -126,6 +126,17 @@ final class CheckInWorkflowViewModel {
     var saveError:    String?   = nil
     var savedCheckIn: CheckIn?  = nil
 
+    // MARK: - Preferences
+
+    private var preferences: CoachPreferences = .default
+
+    /// Stores preferences and cascades to sub-ViewModels that manage user-facing unit text.
+    func apply(preferences: CoachPreferences) {
+        self.preferences = preferences
+        bodyMetrics.apply(preferences: preferences)
+        circumferences.apply(preferences: preferences)
+    }
+
     // MARK: - Init
 
     init(athlete: Athlete) {
@@ -268,8 +279,9 @@ final class CheckInWorkflowViewModel {
         isSaving  = true
         saveError = nil
 
-        // Sync weight for Parrillo live calculation
-        skinfolds.bodyWeightKg = bodyMetrics.weightText.asPositiveDouble
+        // Sync weight for Parrillo live calculation — convert display units back to canonical kg
+        let fmt = AppUnitFormatter(preferences: preferences)
+        skinfolds.bodyWeightKg = bodyMetrics.weightText.asPositiveDouble.map { fmt.toCanonicalWeight($0) }
 
         // Rollback journal — relative filesystem paths written during this attempt only.
         // Only paths from THIS save attempt appear here; preexisting photos are never touched.

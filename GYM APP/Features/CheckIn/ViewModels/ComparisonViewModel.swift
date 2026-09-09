@@ -21,6 +21,10 @@ struct ComparisonRow: Identifiable {
     let diff: MetricDiff
     let sentiment: MetricSentiment
     let unit: String
+    // Pre-converted display values (may differ from diff.before/after when unit != canonical)
+    let displayBefore: Double?
+    let displayAfter: Double?
+    let displayAbsoluteChange: Double?
 }
 
 // MARK: - ComparisonSection
@@ -83,6 +87,8 @@ final class ComparisonViewModel {
     /// Exposed for future ReportBuilder / PDF consumption — never recalculated.
     private(set) var rawComparison:    CheckInComparison?
 
+    private var preferences: CoachPreferences = .default
+
     // MARK: - Derived
 
     var isEmpty: Bool { sections.isEmpty && photoComparison?.hasAny != true }
@@ -97,9 +103,10 @@ final class ComparisonViewModel {
         return texts.contains { ($0?.trimmingCharacters(in: .whitespaces) ?? "").isEmpty == false }
     }
 
-    // MARK: - Configure (call exactly once per pair)
+    // MARK: - Configure (call exactly once per pair; pass preferences for display units)
 
-    func configure(checkInA: CheckIn, checkInB: CheckIn) {
+    func configure(checkInA: CheckIn, checkInB: CheckIn, preferences: CoachPreferences = .default) {
+        self.preferences = preferences
         let (earlier, later) = checkInA.date <= checkInB.date
             ? (checkInA, checkInB)
             : (checkInB, checkInA)
@@ -116,6 +123,14 @@ final class ComparisonViewModel {
         sections        = buildSections(result)
         photoComparison = buildPhotoComparison(earlier: earlier, later: later)
         summary         = buildSummary(result, earlier: earlier, later: later)
+    }
+
+    /// Rebuilds sections and summary with new preferences without re-running the comparison engine.
+    func reconfigure(preferences: CoachPreferences) {
+        self.preferences = preferences
+        guard let c = rawComparison, let earlier = earlierCheckIn, let later = laterCheckIn else { return }
+        sections = buildSections(c)
+        summary  = buildSummary(c, earlier: earlier, later: later)
     }
 
     // MARK: - Sections
@@ -142,14 +157,18 @@ final class ComparisonViewModel {
         }
 
         if c.skinfoldBodyFat.direction != .unavailable {
+            let sf = c.skinfoldBodyFat
             result.append(ComparisonSection(
                 title: "Plicometría",
                 systemImage: "ruler.fill",
                 rows: [ComparisonRow(
-                    label:     "Grasa (Plicometría)",
-                    diff:      c.skinfoldBodyFat,
-                    sentiment: .positiveWhenDecreased,
-                    unit:      "%"
+                    label:                 "Grasa (Plicometría)",
+                    diff:                  sf,
+                    sentiment:             .positiveWhenDecreased,
+                    unit:                  "%",
+                    displayBefore:         sf.before,
+                    displayAfter:          sf.after,
+                    displayAbsoluteChange: sf.absoluteChange
                 )]
             ))
         }
@@ -158,24 +177,36 @@ final class ComparisonViewModel {
     }
 
     private func bodyMetricRows(_ c: CheckInComparison) -> [ComparisonRow] {
+        let fmt = AppUnitFormatter(preferences: preferences)
         // Sentiments based on bodybuilding context, not generic fitness.
         // Weight is neutral: could be fat loss (good) or muscle loss (bad) or bulk (intended).
-        let candidates: [(MetricDiff, String, MetricSentiment, String)] = [
-            (c.weight,      "Peso",            .neutral,                "kg"),
-            (c.bmi,         "IMC",             .neutral,                "kg/m²"),
-            (c.bodyFat,     "Grasa corporal",  .positiveWhenDecreased,  "%"),
-            (c.muscleMass,  "Masa muscular",   .positiveWhenIncreased,  "kg"),
-            (c.boneMass,    "Masa ósea",       .neutral,                "kg"),
-            (c.water,       "Agua corporal",   .neutral,                "%"),
-            (c.visceralFat, "Grasa visceral",  .positiveWhenDecreased,  ""),
-            (c.bmr,         "TMB",             .positiveWhenIncreased,  "kcal"),
+        typealias Entry = (MetricDiff, String, MetricSentiment, String, (Double) -> Double)
+        let candidates: [Entry] = [
+            (c.weight,      "Peso",           .neutral,               fmt.weightLabel, fmt.convertedWeight),
+            (c.bmi,         "IMC",            .neutral,               "kg/m²",         { $0 }),
+            (c.bodyFat,     "Grasa corporal", .positiveWhenDecreased, "%",             { $0 }),
+            (c.muscleMass,  "Masa muscular",  .positiveWhenIncreased, fmt.weightLabel, fmt.convertedWeight),
+            (c.boneMass,    "Masa ósea",      .neutral,               fmt.weightLabel, fmt.convertedWeight),
+            (c.water,       "Agua corporal",  .neutral,               "%",             { $0 }),
+            (c.visceralFat, "Grasa visceral", .positiveWhenDecreased, "",              { $0 }),
+            (c.bmr,         "TMB",            .positiveWhenIncreased, "kcal",          { $0 }),
         ]
         return candidates
             .filter { $0.0.direction != .unavailable }
-            .map    { ComparisonRow(label: $0.1, diff: $0.0, sentiment: $0.2, unit: $0.3) }
+            .map { diff, label, sentiment, unit, convert in
+                ComparisonRow(
+                    label: label, diff: diff, sentiment: sentiment, unit: unit,
+                    displayBefore:         diff.before.map         { convert($0) },
+                    displayAfter:          diff.after.map          { convert($0) },
+                    displayAbsoluteChange: diff.absoluteChange.map { convert($0) }
+                )
+            }
     }
 
     private func circumferenceRows(_ c: CircumferencesDiff) -> [ComparisonRow] {
+        let fmt = AppUnitFormatter(preferences: preferences)
+        let unit = fmt.lengthLabel
+        let convert: (Double) -> Double = fmt.convertedLength
         let candidates: [(MetricDiff, String, MetricSentiment)] = [
             (c.neck,         "Cuello",                .neutral),
             (c.shoulders,    "Hombros",               .neutral),
@@ -194,7 +225,14 @@ final class ComparisonViewModel {
         ]
         return candidates
             .filter { $0.0.direction != .unavailable }
-            .map    { ComparisonRow(label: $0.1, diff: $0.0, sentiment: $0.2, unit: "cm") }
+            .map { diff, label, sentiment in
+                ComparisonRow(
+                    label: label, diff: diff, sentiment: sentiment, unit: unit,
+                    displayBefore:         diff.before.map         { convert($0) },
+                    displayAfter:          diff.after.map          { convert($0) },
+                    displayAbsoluteChange: diff.absoluteChange.map { convert($0) }
+                )
+            }
     }
 
     // MARK: - Photo comparison
@@ -215,22 +253,29 @@ final class ComparisonViewModel {
         earlier: CheckIn,
         later: CheckIn
     ) -> ComparisonSummary {
+        let fmt = AppUnitFormatter(preferences: preferences)
         var insights: [ComparisonInsight] = []
 
         // Key body metrics
-        addInsight(into: &insights, diff: c.weight,    label: "Peso",          unit: "kg", sentiment: .neutral)
+        addInsight(into: &insights, diff: c.weight,    label: "Peso",          unit: fmt.weightLabel,
+                   sentiment: .neutral,               convert: fmt.convertedWeight)
         if c.bodyFat.direction != .unavailable {
             addInsight(into: &insights, diff: c.bodyFat, label: "Grasa corporal", unit: "%", sentiment: .positiveWhenDecreased)
         } else {
             addInsight(into: &insights, diff: c.skinfoldBodyFat, label: "IGC",    unit: "%", sentiment: .positiveWhenDecreased)
         }
-        addInsight(into: &insights, diff: c.muscleMass, label: "Masa muscular",  unit: "kg", sentiment: .positiveWhenIncreased)
+        addInsight(into: &insights, diff: c.muscleMass, label: "Masa muscular", unit: fmt.weightLabel,
+                   sentiment: .positiveWhenIncreased, convert: fmt.convertedWeight)
 
         // Key circumferences
-        addInsight(into: &insights, diff: c.circumferences.waist,     label: "Cintura", unit: "cm", sentiment: .positiveWhenDecreased)
-        addInsight(into: &insights, diff: c.circumferences.abdomen,   label: "Abdomen", unit: "cm", sentiment: .positiveWhenDecreased)
-        addInsight(into: &insights, diff: c.circumferences.rightArm,  label: "Brazo",   unit: "cm", sentiment: .positiveWhenIncreased)
-        addInsight(into: &insights, diff: c.circumferences.rightThigh, label: "Muslo",  unit: "cm", sentiment: .neutral)
+        addInsight(into: &insights, diff: c.circumferences.waist,      label: "Cintura", unit: fmt.lengthLabel,
+                   sentiment: .positiveWhenDecreased, convert: fmt.convertedLength)
+        addInsight(into: &insights, diff: c.circumferences.abdomen,    label: "Abdomen", unit: fmt.lengthLabel,
+                   sentiment: .positiveWhenDecreased, convert: fmt.convertedLength)
+        addInsight(into: &insights, diff: c.circumferences.rightArm,   label: "Brazo",   unit: fmt.lengthLabel,
+                   sentiment: .positiveWhenIncreased, convert: fmt.convertedLength)
+        addInsight(into: &insights, diff: c.circumferences.rightThigh, label: "Muslo",   unit: fmt.lengthLabel,
+                   sentiment: .neutral,               convert: fmt.convertedLength)
 
         // Photos count change
         let photoDelta = c.photosB - c.photosA
@@ -258,9 +303,11 @@ final class ComparisonViewModel {
         diff: MetricDiff,
         label: String,
         unit: String,
-        sentiment: MetricSentiment
+        sentiment: MetricSentiment,
+        convert: ((Double) -> Double)? = nil
     ) {
-        guard let delta = diff.absoluteChange, diff.direction != .unchanged else { return }
+        guard let rawDelta = diff.absoluteChange, diff.direction != .unchanged else { return }
+        let delta = convert.map { $0(rawDelta) } ?? rawDelta
 
         switch sentiment {
         case .positiveWhenDecreased:

@@ -15,13 +15,13 @@ struct ComparisonMetricCard: View {
                 .foregroundStyle(.secondary)
 
             HStack(spacing: AppSpacing.sm) {
-                valueColumn(label: "Antes", value: formatted(row.diff.before))
+                valueColumn(label: "Antes", value: formatted(row.displayBefore))
                     .frame(maxWidth: .infinity)
 
                 deltaBadge
                     .frame(maxWidth: .infinity)
 
-                valueColumn(label: "Después", value: formatted(row.diff.after))
+                valueColumn(label: "Después", value: formatted(row.displayAfter))
                     .frame(maxWidth: .infinity)
             }
         }
@@ -79,7 +79,7 @@ struct ComparisonMetricCard: View {
     // MARK: - Formatting
 
     private var deltaText: String {
-        guard let delta = row.diff.absoluteChange, row.diff.direction != .unchanged else {
+        guard let delta = row.displayAbsoluteChange, row.diff.direction != .unchanged else {
             return row.diff.direction == .unchanged ? "=" : "—"
         }
         let sign = delta >= 0 ? "+" : ""

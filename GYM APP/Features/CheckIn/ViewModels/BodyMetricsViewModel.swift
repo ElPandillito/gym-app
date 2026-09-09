@@ -19,23 +19,27 @@ final class BodyMetricsViewModel {
     var visceralFatText: String        = ""
     var basalMetabolicRateText: String = ""
 
-    // ISAK base measurements (Level 1 + 2)
+    // ISAK base measurements (Level 1 + 2) — always canonical cm
     var sittingHeightText: String = ""
     var armSpanText: String       = ""
 
     private let existingMetrics: BodyMetrics?
     private let athleteHeight: Double?      // centimeters
+    private var preferences: CoachPreferences = .default
 
     var isEditing: Bool { existingMetrics != nil }
 
     var canSave: Bool { weightText.asPositiveDouble != nil }
 
-    // BMI auto-calculated from weight + athlete height; never entered manually
+    // BMI auto-calculated from weight + athlete height.
+    // weightText is in display units; convert to canonical kg for the formula.
     var bmi: Double? {
-        guard let weight = weightText.asPositiveDouble,
+        guard let displayWeight = weightText.asPositiveDouble,
               let hcm = athleteHeight, hcm > 0 else { return nil }
+        let fmt = AppUnitFormatter(preferences: preferences)
+        let canonicalKg = fmt.toCanonicalWeight(displayWeight)
         let hm = hcm / 100.0
-        return weight / (hm * hm)
+        return canonicalKg / (hm * hm)
     }
 
     var bmiFormatted: String {
@@ -45,7 +49,7 @@ final class BodyMetricsViewModel {
 
     var heightFormatted: String {
         guard let h = athleteHeight else { return "No configurada" }
-        return String(format: "%.1f cm", h)
+        return AppUnitFormatter(preferences: preferences).height(h)
     }
 
     init(metrics: BodyMetrics? = nil, athleteHeight: Double? = nil) {
@@ -53,6 +57,7 @@ final class BodyMetricsViewModel {
         self.athleteHeight   = athleteHeight
 
         guard let m = metrics else { return }
+        // Initialize with canonical values; apply(preferences:) will re-format to display units.
         weightText             = m.bodyWeight.map          { String(format: "%.2f", $0) } ?? ""
         fatPercentageText      = m.bodyFatPercentage.map   { String(format: "%.1f", $0) } ?? ""
         muscleMassText         = m.muscleMass.map          { String(format: "%.2f", $0) } ?? ""
@@ -64,10 +69,21 @@ final class BodyMetricsViewModel {
         armSpanText            = m.armSpan.map             { String(format: "%.1f", $0) } ?? ""
     }
 
+    // MARK: - Apply preferences (call once from onAppear)
+
+    /// Stores preferences and re-formats weight/mass text fields from canonical to display units.
+    /// For new check-ins (no existing metrics) this only stores preferences for use at save time.
+    func apply(preferences: CoachPreferences) {
+        self.preferences = preferences
+        guard let m = existingMetrics else { return }
+        let fmt = AppUnitFormatter(preferences: preferences)
+        weightText     = m.bodyWeight.map { String(format: "%.2f", fmt.convertedWeight($0)) } ?? ""
+        muscleMassText = m.muscleMass.map { String(format: "%.2f", fmt.convertedWeight($0)) } ?? ""
+        boneMassText   = m.boneMass.map   { String(format: "%.2f", fmt.convertedWeight($0)) } ?? ""
+    }
+
     // MARK: - Save (standalone form — commits immediately)
 
-    // Returns true on success. Creates a new BodyMetrics if none exists yet.
-    // Throws on repository failure so the caller (CheckInWorkflowViewModel) can handle it.
     @discardableResult
     func save(for checkIn: CheckIn, using repository: BodyMetricsRepository) throws -> Bool {
         guard canSave else { return false }
@@ -78,9 +94,6 @@ final class BodyMetricsViewModel {
     }
 
     // MARK: - Insert-only (workflow creation path — no commit)
-    //
-    // Calls repository.insertNew() instead of repository.save().
-    // The orchestrator (CheckInWorkflowViewModel) controls the single final commit.
 
     @discardableResult
     func insertRecord(for checkIn: CheckIn, using repository: BodyMetricsRepository) -> Bool {
@@ -94,15 +107,16 @@ final class BodyMetricsViewModel {
     // MARK: - Helpers
 
     private func applyFields(to metrics: BodyMetrics) {
-        metrics.bodyWeight         = weightText.asPositiveDouble
+        let fmt = AppUnitFormatter(preferences: preferences)
+        metrics.bodyWeight         = weightText.asPositiveDouble.map        { fmt.toCanonicalWeight($0) }
         metrics.bmi                = bmi
         metrics.bodyFatPercentage  = fatPercentageText.asPositiveDouble
-        metrics.muscleMass         = muscleMassText.asPositiveDouble
-        metrics.boneMass           = boneMassText.asPositiveDouble
+        metrics.muscleMass         = muscleMassText.asPositiveDouble.map    { fmt.toCanonicalWeight($0) }
+        metrics.boneMass           = boneMassText.asPositiveDouble.map      { fmt.toCanonicalWeight($0) }
         metrics.waterPercentage    = waterPercentageText.asPositiveDouble
         metrics.visceralFatLevel   = visceralFatText.asPositiveDouble
         metrics.basalMetabolicRate = basalMetabolicRateText.asPositiveDouble
-        metrics.sittingHeight      = sittingHeightText.asPositiveDouble
-        metrics.armSpan            = armSpanText.asPositiveDouble
+        metrics.sittingHeight      = sittingHeightText.asPositiveDouble     // ISAK — always cm
+        metrics.armSpan            = armSpanText.asPositiveDouble            // ISAK — always cm
     }
 }

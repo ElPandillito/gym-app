@@ -20,6 +20,7 @@ final class AthleteFormViewModel {
     var saveError: String?   = nil
 
     private let existingAthlete: Athlete?
+    private var preferences: CoachPreferences = .default
 
     var isEditing: Bool { existingAthlete != nil }
     var title: String { isEditing ? "Editar Atleta" : "Nuevo Atleta" }
@@ -40,6 +41,15 @@ final class AthleteFormViewModel {
             birthDate    = athlete.birthDate ?? Date()
             heightText   = athlete.height.map { String(format: "%.1f", $0) } ?? ""
         }
+    }
+
+    // MARK: - Apply preferences (call once from onAppear)
+
+    /// Stores preferences and re-formats heightText from canonical cm to display units.
+    func apply(preferences: CoachPreferences) {
+        self.preferences = preferences
+        guard let h = existingAthlete?.height else { return }
+        heightText = String(format: "%.1f", AppUnitFormatter(preferences: preferences).convertedLength(h))
     }
 
     func validateName() {
@@ -63,9 +73,11 @@ final class AthleteFormViewModel {
         guard canSave else { return false }
         saveError = nil
 
+        let fmt = AppUnitFormatter(preferences: preferences)
         let parsedHeight: Double? = {
             guard !heightText.isEmpty else { return nil }
-            return Double(heightText.replacingOccurrences(of: ",", with: "."))
+            guard let v = Double(heightText.replacingOccurrences(of: ",", with: ".")) else { return nil }
+            return fmt.toCanonicalLength(v)
         }()
 
         do {

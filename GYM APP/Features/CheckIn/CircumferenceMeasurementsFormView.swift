@@ -9,6 +9,9 @@ import SwiftData
 struct CircumferenceMeasurementsFormView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
+    @Environment(CoachPreferencesStore.self) private var prefsStore
+
+    private var fmt: AppUnitFormatter { AppUnitFormatter(preferences: prefsStore.preferences) }
 
     let checkIn: CheckIn
 
@@ -26,32 +29,33 @@ struct CircumferenceMeasurementsFormView: View {
         NavigationStack {
             Form {
                 Section("Torso") {
-                    MetricInputRow(label: "Cuello",   text: $viewModel.neckText,      unit: "cm")
-                    MetricInputRow(label: "Hombros",  text: $viewModel.shouldersText,  unit: "cm")
-                    MetricInputRow(label: "Pecho",    text: $viewModel.chestText,      unit: "cm")
+                    MetricInputRow(label: "Cuello",   text: $viewModel.neckText,      unit: fmt.lengthLabel)
+                    MetricInputRow(label: "Hombros",  text: $viewModel.shouldersText,  unit: fmt.lengthLabel)
+                    MetricInputRow(label: "Pecho",    text: $viewModel.chestText,      unit: fmt.lengthLabel)
                 }
 
                 Section("Brazos") {
-                    MetricInputRow(label: "Brazo derecho",       text: $viewModel.rightArmText,     unit: "cm")
-                    MetricInputRow(label: "Brazo izquierdo",     text: $viewModel.leftArmText,      unit: "cm")
-                    MetricInputRow(label: "Antebrazo derecho",   text: $viewModel.rightForearmText, unit: "cm")
-                    MetricInputRow(label: "Antebrazo izquierdo", text: $viewModel.leftForearmText,  unit: "cm")
+                    MetricInputRow(label: "Brazo derecho",       text: $viewModel.rightArmText,     unit: fmt.lengthLabel)
+                    MetricInputRow(label: "Brazo izquierdo",     text: $viewModel.leftArmText,      unit: fmt.lengthLabel)
+                    MetricInputRow(label: "Antebrazo derecho",   text: $viewModel.rightForearmText, unit: fmt.lengthLabel)
+                    MetricInputRow(label: "Antebrazo izquierdo", text: $viewModel.leftForearmText,  unit: fmt.lengthLabel)
                 }
 
                 Section("Tronco") {
-                    MetricInputRow(label: "Cintura",          text: $viewModel.waistText,   unit: "cm")
-                    MetricInputRow(label: "Abdomen",          text: $viewModel.abdomenText, unit: "cm")
-                    MetricInputRow(label: "Cadera / Glúteos", text: $viewModel.hipsText,    unit: "cm")
+                    MetricInputRow(label: "Cintura",          text: $viewModel.waistText,   unit: fmt.lengthLabel)
+                    MetricInputRow(label: "Abdomen",          text: $viewModel.abdomenText, unit: fmt.lengthLabel)
+                    MetricInputRow(label: "Cadera / Glúteos", text: $viewModel.hipsText,    unit: fmt.lengthLabel)
                 }
 
                 Section("Piernas") {
-                    MetricInputRow(label: "Muslo derecho",         text: $viewModel.rightThighText, unit: "cm")
-                    MetricInputRow(label: "Muslo izquierdo",       text: $viewModel.leftThighText,  unit: "cm")
-                    MetricInputRow(label: "Pantorrilla derecha",   text: $viewModel.rightCalfText,  unit: "cm")
-                    MetricInputRow(label: "Pantorrilla izquierda", text: $viewModel.leftCalfText,   unit: "cm")
+                    MetricInputRow(label: "Muslo derecho",         text: $viewModel.rightThighText, unit: fmt.lengthLabel)
+                    MetricInputRow(label: "Muslo izquierdo",       text: $viewModel.leftThighText,  unit: fmt.lengthLabel)
+                    MetricInputRow(label: "Pantorrilla derecha",   text: $viewModel.rightCalfText,  unit: fmt.lengthLabel)
+                    MetricInputRow(label: "Pantorrilla izquierda", text: $viewModel.leftCalfText,   unit: fmt.lengthLabel)
                 }
             }
             .navigationTitle(viewModel.isEditing ? "Editar Medidas" : "Registrar Medidas")
+            .onAppear { viewModel.apply(preferences: prefsStore.preferences) }
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif

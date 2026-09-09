@@ -9,6 +9,9 @@ import SwiftData
 struct BodyMetricsFormView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
+    @Environment(CoachPreferencesStore.self) private var prefsStore
+
+    private var fmt: AppUnitFormatter { AppUnitFormatter(preferences: prefsStore.preferences) }
 
     let checkIn: CheckIn
 
@@ -27,7 +30,7 @@ struct BodyMetricsFormView: View {
         NavigationStack {
             Form {
                 Section {
-                    MetricInputRow(label: "Peso", text: $viewModel.weightText, unit: "kg")
+                    MetricInputRow(label: "Peso", text: $viewModel.weightText, unit: fmt.weightLabel)
 
                     HStack {
                         Text("IMC")
@@ -55,9 +58,9 @@ struct BodyMetricsFormView: View {
 
                 Section("Composición Corporal") {
                     MetricInputRow(label: "% Grasa corporal",  text: $viewModel.fatPercentageText,    unit: "%")
-                    MetricInputRow(label: "Masa muscular",     text: $viewModel.muscleMassText,        unit: "kg")
+                    MetricInputRow(label: "Masa muscular",     text: $viewModel.muscleMassText,        unit: fmt.weightLabel)
                     MetricInputRow(label: "Agua corporal",     text: $viewModel.waterPercentageText,   unit: "%")
-                    MetricInputRow(label: "Masa ósea",         text: $viewModel.boneMassText,          unit: "kg")
+                    MetricInputRow(label: "Masa ósea",         text: $viewModel.boneMassText,          unit: fmt.weightLabel)
                 }
 
                 Section("Otros") {
@@ -66,6 +69,7 @@ struct BodyMetricsFormView: View {
                 }
             }
             .navigationTitle(viewModel.isEditing ? "Editar Métricas" : "Registrar Peso")
+            .onAppear { viewModel.apply(preferences: prefsStore.preferences) }
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
