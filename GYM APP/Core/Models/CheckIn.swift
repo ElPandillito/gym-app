@@ -41,6 +41,9 @@ final class CheckIn {
     @Relationship(deleteRule: .cascade, inverse: \AthleteNote.checkIn)
     var athleteNote: AthleteNote?
 
+    @Relationship(deleteRule: .cascade, inverse: \AIBodyFatAssessment.checkIn)
+    var aiBodyFatAssessment: AIBodyFatAssessment?
+
     // One-to-many children (cascade delete)
     @Relationship(deleteRule: .cascade, inverse: \ProgressPhoto.checkIn)
     var photos: [ProgressPhoto]

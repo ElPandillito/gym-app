@@ -24,6 +24,7 @@ struct CheckInDetailView: View {
             bodyWeightSection
             photosSection
             igcSection
+            AIBodyFatAssessmentCard(checkIn: checkIn)
             skinfoldSection
             circumferenceSection
             notesSection

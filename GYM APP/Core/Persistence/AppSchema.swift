@@ -36,6 +36,7 @@ enum GYMAppSchemaV1: VersionedSchema {
             ProgressPhoto.self,
             CoachNote.self,
             AthleteNote.self,
+            AIBodyFatAssessment.self,
             Food.self,
             FoodImage.self,
             RecipeIngredient.self,
