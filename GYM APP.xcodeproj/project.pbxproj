@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		F754A5403051F0B4006C965F /* Permissions.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = F754A53F3051F0B4006C965F /* Permissions.xcconfig */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		F7F14A14304A50D800EE1864 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -24,6 +28,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		F754A53F3051F0B4006C965F /* Permissions.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Permissions.xcconfig; sourceTree = "<group>"; };
 		F7CDD6EC2FF2FB36003B8E5F /* GYM APP.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "GYM APP.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		F7F14A10304A50D800EE1864 /* GYM APPTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "GYM APPTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		F7F14A21304A513900EE1864 /* GYM APPUITest.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "GYM APPUITest.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -79,6 +84,7 @@
 				F7F14A11304A50D800EE1864 /* GYM APPTests */,
 				F7F14A22304A513900EE1864 /* GYM APPUITest */,
 				F7CDD6ED2FF2FB36003B8E5F /* Products */,
+				F754A53F3051F0B4006C965F /* Permissions.xcconfig */,
 			);
 			sourceTree = "<group>";
 		};
@@ -212,6 +218,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F754A5403051F0B4006C965F /* Permissions.xcconfig in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -275,6 +282,7 @@
 /* Begin XCBuildConfiguration section */
 		F7CDD6F72FF2FB38003B8E5F /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = F754A53F3051F0B4006C965F /* Permissions.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -337,6 +345,7 @@
 		};
 		F7CDD6F82FF2FB38003B8E5F /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = F754A53F3051F0B4006C965F /* Permissions.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -391,6 +400,7 @@
 		};
 		F7CDD6FA2FF2FB38003B8E5F /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = F754A53F3051F0B4006C965F /* Permissions.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -435,6 +445,7 @@
 		};
 		F7CDD6FB2FF2FB38003B8E5F /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = F754A53F3051F0B4006C965F /* Permissions.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -479,6 +490,7 @@
 		};
 		F7F14A17304A50D800EE1864 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = F754A53F3051F0B4006C965F /* Permissions.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
@@ -487,6 +499,10 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "GYM-APPTests-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "";
+				INFOPLIST_KEY_LSApplicationCategoryType = "";
+				INFOPLIST_KEY_NSCameraUsageDescription = "La aplicación usa la cámara para capturar fotografías de posing del atleta durante el check-in";
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.alexisaguirre.GYM-APPTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -507,11 +523,16 @@
 		};
 		F7F14A18304A50D800EE1864 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = F754A53F3051F0B4006C965F /* Permissions.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "GYM-APPTests-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "";
+				INFOPLIST_KEY_LSApplicationCategoryType = "";
+				INFOPLIST_KEY_NSCameraUsageDescription = "La aplicación usa la cámara para capturar fotografías de posing del atleta durante el check-in";
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.alexisaguirre.GYM-APPTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -532,6 +553,7 @@
 		};
 		F7F14A2A304A513900EE1864 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = F754A53F3051F0B4006C965F /* Permissions.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -555,6 +577,7 @@
 		};
 		F7F14A2B304A513900EE1864 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = F754A53F3051F0B4006C965F /* Permissions.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;

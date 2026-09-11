@@ -11,10 +11,42 @@ struct AthleteTrendsSectionView: View {
     let report: AthleteStatisticsReport
     @Environment(CoachPreferencesStore.self) private var prefsStore
 
+    @State private var selectedChartMetric: MetricKey = .weight
+
     private var fmt: AppUnitFormatter { AppUnitFormatter(preferences: prefsStore.preferences) }
+
+    // Metrics with at least one data point, sorted by relevance.
+    private static let chartMetricPriority: [MetricKey] = [
+        .weight, .bodyFat, .muscleMass, .bmi,
+        .water, .visceralFat, .boneMass, .bmr, .skinfoldBodyFat
+    ]
+
+    private var availableChartMetrics: [MetricKey] {
+        Self.chartMetricPriority.filter { report.timeSeries[$0]?.isEmpty == false }
+    }
+
+    // Falls back to the first available metric if the current selection has no data.
+    private var effectiveChartMetric: MetricKey {
+        availableChartMetrics.contains(selectedChartMetric)
+            ? selectedChartMetric
+            : (availableChartMetrics.first ?? .weight)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
+
+            // MARK: Chart section
+            if !availableChartMetrics.isEmpty {
+                AppSectionHeader("Evolución", icon: "chart.xyaxis.line")
+                metricPickerChips
+                TrendChartView(
+                    points: report.timeSeries[effectiveChartMetric] ?? [],
+                    metricKey: effectiveChartMetric,
+                    preferences: prefsStore.preferences
+                )
+            }
+
+            // MARK: Numeric trends section (unchanged)
             AppSectionHeader("Tendencias", icon: "chart.line.uptrend.xyaxis")
 
             if trendEntries.isEmpty {
@@ -37,6 +69,7 @@ struct AthleteTrendsSectionView: View {
                 .background(AppColors.secondaryBg, in: RoundedRectangle(cornerRadius: AppRadius.md))
             }
 
+            // MARK: Records section (unchanged)
             if !recordEntries.isEmpty {
                 AppSectionHeader("Mejores Marcas", icon: "star.fill")
                 VStack(spacing: 0) {
@@ -51,9 +84,64 @@ struct AthleteTrendsSectionView: View {
                 .background(AppColors.secondaryBg, in: RoundedRectangle(cornerRadius: AppRadius.md))
             }
         }
+        .task {
+            // Ensure initial selection is valid if weight data is absent.
+            if !availableChartMetrics.contains(selectedChartMetric),
+               let first = availableChartMetrics.first {
+                selectedChartMetric = first
+            }
+        }
     }
 
-    // MARK: - Data helpers
+    // MARK: - Metric picker chips
+
+    private var metricPickerChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: AppSpacing.xs) {
+                ForEach(availableChartMetrics, id: \.self) { key in
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            selectedChartMetric = key
+                        }
+                    } label: {
+                        Text(chipLabel(for: key))
+                            .font(AppTypography.caption
+                                .weight(effectiveChartMetric == key ? .semibold : .regular))
+                            .foregroundStyle(effectiveChartMetric == key
+                                             ? Color.white
+                                             : AppColors.primaryText)
+                            .padding(.horizontal, AppSpacing.md)
+                            .padding(.vertical, AppSpacing.xs)
+                            .background(
+                                effectiveChartMetric == key
+                                    ? Color.accentColor
+                                    : AppColors.secondaryBg,
+                                in: Capsule()
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 1)
+        }
+    }
+
+    // Short labels for compact chip display.
+    private func chipLabel(for key: MetricKey) -> String {
+        switch key {
+        case .weight:           return "Peso"
+        case .bmi:              return "IMC"
+        case .bodyFat:          return "Grasa %"
+        case .muscleMass:       return "Muscular"
+        case .boneMass:         return "Ósea"
+        case .water:            return "Agua"
+        case .visceralFat:      return "Visceral"
+        case .bmr:              return "TMB"
+        case .skinfoldBodyFat:  return "Plicometría"
+        }
+    }
+
+    // MARK: - Data helpers (unchanged)
 
     fileprivate struct TrendEntry {
         let label: String
@@ -117,7 +205,7 @@ struct AthleteTrendsSectionView: View {
     }
 }
 
-// MARK: - TrendRow
+// MARK: - TrendRow (unchanged)
 
 private struct TrendRow: View {
     let entry: AthleteTrendsSectionView.TrendEntry
@@ -178,7 +266,7 @@ private struct TrendRow: View {
     }
 }
 
-// MARK: - RecordRow
+// MARK: - RecordRow (unchanged)
 
 private struct RecordRow: View {
     let entry: AthleteTrendsSectionView.RecordEntry
