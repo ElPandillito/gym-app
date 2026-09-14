@@ -13,6 +13,8 @@ struct CheckInRepository: CheckInRepositoryProtocol {
         self.context = context
     }
 
+    // MARK: - Standard CRUD (used by standalone edit screens)
+
     func add(_ checkIn: CheckIn, to athlete: Athlete) throws {
         checkIn.athlete = athlete
         context.insert(checkIn)
@@ -67,5 +69,39 @@ struct CheckInRepository: CheckInRepositoryProtocol {
 
         checkIn.updatedAt = Date()
         try context.save()
+    }
+
+    // MARK: - Insert-only variants (used by CheckInWorkflowViewModel)
+    //
+    // These methods perform context.insert() but NOT context.save().
+    // The orchestrator (CheckInWorkflowViewModel) controls the single final commit
+    // so that context.rollback() can undo all insertions if any phase fails.
+
+    func insertNew(_ checkIn: CheckIn, into athlete: Athlete) {
+        checkIn.athlete = athlete
+        context.insert(checkIn)
+    }
+
+    // Inserts CoachNote and AthleteNote without saving.
+    // For creation only — assumes no existing notes on the CheckIn.
+    func insertNotes(coachText: String, athleteText: String, for checkIn: CheckIn) {
+        let trimmedCoach   = coachText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedAthlete = athleteText.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if !trimmedCoach.isEmpty {
+            let note = CoachNote(text: trimmedCoach)
+            note.checkIn  = checkIn
+            checkIn.coachNote = note
+            context.insert(note)
+        }
+
+        if !trimmedAthlete.isEmpty {
+            let note = AthleteNote(text: trimmedAthlete)
+            note.checkIn  = checkIn
+            checkIn.athleteNote = note
+            context.insert(note)
+        }
+
+        checkIn.updatedAt = Date()
     }
 }

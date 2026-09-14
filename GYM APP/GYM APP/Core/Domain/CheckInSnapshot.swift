@@ -11,6 +11,7 @@ struct CheckInSnapshot: Sendable {
     let id: UUID
     let date: Date
     let athleteID: UUID
+    let anthropometryProfile: AnthropometryProfile
     let bodyMetrics: BodyMetricsSnapshot?
     let circumferences: CircumferencesSnapshot?
     let skinfolds: SkinfoldSnapshot?
@@ -19,15 +20,16 @@ struct CheckInSnapshot: Sendable {
     let hasAthleteNote: Bool
 
     init(from checkIn: CheckIn) {
-        id           = checkIn.id
-        date         = checkIn.date
-        athleteID    = checkIn.athlete?.id ?? UUID()
-        bodyMetrics  = checkIn.bodyMetrics.map(BodyMetricsSnapshot.init)
-        circumferences = checkIn.circumferences.map(CircumferencesSnapshot.init)
-        skinfolds    = checkIn.skinfolds.map(SkinfoldSnapshot.init)
-        photoCount   = checkIn.photos.count
-        hasCoachNote   = !(checkIn.coachNote?.text.trimmingCharacters(in: .whitespaces).isEmpty ?? true)
-        hasAthleteNote = !(checkIn.athleteNote?.text.trimmingCharacters(in: .whitespaces).isEmpty ?? true)
+        id                   = checkIn.id
+        date                 = checkIn.date
+        athleteID            = checkIn.athlete?.id ?? UUID()
+        anthropometryProfile = AnthropometryProfile(rawValue: checkIn.anthropometryProfileID ?? "") ?? .standard
+        bodyMetrics          = checkIn.bodyMetrics.map(BodyMetricsSnapshot.init)
+        circumferences       = checkIn.circumferences.map(CircumferencesSnapshot.init)
+        skinfolds            = checkIn.skinfolds.map(SkinfoldSnapshot.init)
+        photoCount           = checkIn.photos.count
+        hasCoachNote         = !(checkIn.coachNote?.text.trimmingCharacters(in: .whitespaces).isEmpty ?? true)
+        hasAthleteNote       = !(checkIn.athleteNote?.text.trimmingCharacters(in: .whitespaces).isEmpty ?? true)
     }
 }
 
@@ -99,8 +101,8 @@ struct SkinfoldSnapshot: Sendable {
     let estimatedBodyFatPercentage: Double?
 
     init(from s: SkinfoldMeasurements) {
-        method                    = s.method
-        bodyDensity               = s.bodyDensity
+        method                     = s.method
+        bodyDensity                = s.bodyDensity
         estimatedBodyFatPercentage = s.estimatedBodyFatPercentage
     }
 }
@@ -114,14 +116,13 @@ extension CheckInSnapshot {
         weight: Double? = 80.0,
         bodyFat: Double? = 15.0
     ) -> CheckInSnapshot {
-        var snap = CheckInSnapshot.__mock()
-        return snap
+        CheckInSnapshot.__mock()
     }
 
-    // Memberwise mock — avoids full model graph
     private static func __mock() -> CheckInSnapshot {
         CheckInSnapshot(
             id: UUID(), date: Date(), athleteID: UUID(),
+            anthropometryProfile: .standard,
             bodyMetrics: nil, circumferences: nil, skinfolds: nil,
             photoCount: 0, hasCoachNote: false, hasAthleteNote: false
         )
@@ -129,6 +130,7 @@ extension CheckInSnapshot {
 
     init(
         id: UUID, date: Date, athleteID: UUID,
+        anthropometryProfile: AnthropometryProfile = .standard,
         bodyMetrics: BodyMetricsSnapshot?,
         circumferences: CircumferencesSnapshot?,
         skinfolds: SkinfoldSnapshot?,
@@ -136,15 +138,50 @@ extension CheckInSnapshot {
         hasCoachNote: Bool,
         hasAthleteNote: Bool
     ) {
-        self.id             = id
-        self.date           = date
-        self.athleteID      = athleteID
-        self.bodyMetrics    = bodyMetrics
-        self.circumferences = circumferences
-        self.skinfolds      = skinfolds
-        self.photoCount     = photoCount
-        self.hasCoachNote   = hasCoachNote
-        self.hasAthleteNote = hasAthleteNote
+        self.id                   = id
+        self.date                 = date
+        self.athleteID            = athleteID
+        self.anthropometryProfile = anthropometryProfile
+        self.bodyMetrics          = bodyMetrics
+        self.circumferences       = circumferences
+        self.skinfolds            = skinfolds
+        self.photoCount           = photoCount
+        self.hasCoachNote         = hasCoachNote
+        self.hasAthleteNote       = hasAthleteNote
+    }
+}
+
+extension BodyMetricsSnapshot {
+    init(
+        bodyWeight: Double?,
+        bmi: Double? = nil,
+        bodyFatPercentage: Double? = nil,
+        muscleMass: Double? = nil,
+        boneMass: Double? = nil,
+        waterPercentage: Double? = nil,
+        visceralFatLevel: Double? = nil,
+        basalMetabolicRate: Double? = nil
+    ) {
+        self.bodyWeight         = bodyWeight
+        self.bmi                = bmi
+        self.bodyFatPercentage  = bodyFatPercentage
+        self.muscleMass         = muscleMass
+        self.boneMass           = boneMass
+        self.waterPercentage    = waterPercentage
+        self.visceralFatLevel   = visceralFatLevel
+        self.basalMetabolicRate = basalMetabolicRate
+    }
+}
+
+extension SkinfoldSnapshot {
+    init(
+        method: PlicometryMethod,
+        bodyDensity: Double? = nil,
+        estimatedBodyFatPercentage: Double?
+    ) {
+        self.method                     = method
+        self.bodyDensity                = bodyDensity
+        self.estimatedBodyFatPercentage = estimatedBodyFatPercentage
     }
 }
 #endif

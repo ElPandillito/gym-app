@@ -13,6 +13,7 @@ struct SkinfoldMeasurementsFormView: View {
     let checkIn: CheckIn
 
     @State private var viewModel: SkinfoldMeasurementsViewModel
+    @State private var saveError: String? = nil
 
     init(checkIn: CheckIn) {
         self.checkIn = checkIn
@@ -47,10 +48,22 @@ struct SkinfoldMeasurementsFormView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Guardar") {
                         let repo = SkinfoldMeasurementsRepository(context: context)
-                        if viewModel.save(for: checkIn, using: repo) { dismiss() }
+                        do {
+                            if try viewModel.save(for: checkIn, using: repo) { dismiss() }
+                        } catch {
+                            saveError = "No se pudo guardar la plicometría. Inténtalo de nuevo."
+                        }
                     }
                     .disabled(!viewModel.canSave)
                 }
+            }
+            .alert("Error al guardar", isPresented: Binding(
+                get: { saveError != nil },
+                set: { if !$0 { saveError = nil } }
+            )) {
+                Button("Aceptar", role: .cancel) {}
+            } message: {
+                Text(saveError ?? "")
             }
         }
     }

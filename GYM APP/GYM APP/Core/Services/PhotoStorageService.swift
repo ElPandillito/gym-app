@@ -4,18 +4,20 @@
 //
 
 import Foundation
+import OSLog
 
 struct PhotoStorageService: PhotoStorageServiceProtocol {
 
     private let fileManager: FileManager
+    private let rootURL: URL
 
-    init(fileManager: FileManager = .default) {
+    init(fileManager: FileManager = .default, rootURL: URL? = nil) {
         self.fileManager = fileManager
+        self.rootURL = rootURL
+            ?? fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
     }
 
-    private var documentsURL: URL {
-        fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
-    }
+    private var documentsURL: URL { rootURL }
 
     // MARK: - Save
 
@@ -24,6 +26,7 @@ struct PhotoStorageService: PhotoStorageServiceProtocol {
         try fileManager.createDirectory(at: dir, withIntermediateDirectories: true)
         let file = dir.appendingPathComponent("\(photoID.uuidString).jpg")
         try data.write(to: file, options: .atomic)
+        protectFile(file)
         return relativePath(for: file)
     }
 
@@ -32,6 +35,7 @@ struct PhotoStorageService: PhotoStorageServiceProtocol {
         try fileManager.createDirectory(at: dir, withIntermediateDirectories: true)
         let file = dir.appendingPathComponent("\(photoID.uuidString).jpg")
         try data.write(to: file, options: .atomic)
+        protectFile(file)
         return relativePath(for: file)
     }
 
@@ -78,6 +82,42 @@ struct PhotoStorageService: PhotoStorageServiceProtocol {
         }
     }
 
+    // MARK: - Global orphan sweep
+
+    @discardableResult
+    func sweepOrphanFiles(knownRelativePaths: Set<String>) -> Int {
+        let athletesRoot = documentsURL.appendingPathComponent("Athletes")
+        guard fileManager.fileExists(atPath: athletesRoot.path) else { return 0 }
+        guard let enumerator = fileManager.enumerator(
+            at: athletesRoot,
+            includingPropertiesForKeys: [.isRegularFileKey],
+            options: .skipsHiddenFiles
+        ) else { return 0 }
+
+        // Collect candidates first — do not delete while enumerating.
+        var candidates: [URL] = []
+        for case let fileURL as URL in enumerator {
+            guard (try? fileURL.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true else { continue }
+            guard fileURL.pathExtension.lowercased() == "jpg" else { continue }
+            let rel = relativePath(for: fileURL)
+            if !knownRelativePaths.contains(rel) {
+                candidates.append(fileURL)
+            }
+        }
+
+        var removed = 0
+        for fileURL in candidates {
+            do {
+                try fileManager.removeItem(at: fileURL)
+                removed += 1
+            } catch {
+                // Log aggregate failure without exposing paths or file details.
+                AppLogger.storage.error("Photo orphan sweep: could not remove one orphan file")
+            }
+        }
+        return removed
+    }
+
     // MARK: - Path helpers
 
     private func checkInDirectory(athleteID: UUID, checkInID: UUID) -> URL {
@@ -104,5 +144,15 @@ struct PhotoStorageService: PhotoStorageServiceProtocol {
         guard filePath.hasPrefix(docPath) else { return filePath }
         let rel = String(filePath.dropFirst(docPath.count))
         return rel.hasPrefix("/") ? String(rel.dropFirst()) : rel
+    }
+
+    // MARK: - Security
+
+    /// Applies File Protection (iOS encryption at rest) and excludes the file from
+    /// iCloud / iTunes backups. Both are no-ops on macOS (harmless to call).
+    private func protectFile(_ url: URL) {
+        let nsurl = url as NSURL
+        try? nsurl.setResourceValue(URLFileProtection.completeUnlessOpen, forKey: .fileProtectionKey)
+        try? nsurl.setResourceValue(true, forKey: .isExcludedFromBackupKey)
     }
 }

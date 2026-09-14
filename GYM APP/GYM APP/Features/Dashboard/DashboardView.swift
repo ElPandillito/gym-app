@@ -10,24 +10,64 @@ struct DashboardView: View {
     @Query(sort: \Athlete.name)       private var athletes:   [Athlete]
     @Query(sort: \CheckIn.date, order: .reverse) private var checkIns: [CheckIn]
 
-    @State private var viewModel = DashboardViewModel()
+    @State   private var viewModel  = DashboardViewModel()
+    @Environment(CoachPreferencesStore.self) private var prefsStore
+
+    private var fmt: AppUnitFormatter { AppUnitFormatter(preferences: prefsStore.preferences) }
+
+    private let filterCases: [DashboardFilter] = [.all, .active, .inactive, .competition, .bulk, .cut]
 
     var body: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: AppSpacing.xl) {
-                summarySection
-                recentActivitySection
-                alertsSection
-                progressorsSection
-                pendingActionsSection
+        VStack(spacing: 0) {
+            filterBar
+            Divider()
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: AppSpacing.xl) {
+                    summarySection
+                    recentActivitySection
+                    alertsSection
+                    progressorsSection
+                    pendingActionsSection
+                }
+                .padding(.horizontal, AppSpacing.base)
+                .padding(.vertical, AppSpacing.lg)
             }
-            .padding(.horizontal, AppSpacing.base)
-            .padding(.vertical, AppSpacing.lg)
         }
         .navigationTitle("Dashboard")
-        .onAppear     { viewModel.load(athletes: athletes, checkIns: checkIns) }
-        .onChange(of: athletes)  { viewModel.load(athletes: athletes, checkIns: checkIns) }
-        .onChange(of: checkIns)  { viewModel.load(athletes: athletes, checkIns: checkIns) }
+        .onAppear     { reload() }
+        .onChange(of: athletes)               { reload() }
+        .onChange(of: checkIns)               { reload() }
+        .onChange(of: viewModel.activeFilter) { reload() }
+        .onChange(of: prefsStore.preferences) { reload() }
+    }
+
+    private func reload() {
+        viewModel.load(athletes: athletes, checkIns: checkIns, preferences: prefsStore.preferences)
+    }
+
+    // MARK: - Filter Bar
+
+    private var filterBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: AppSpacing.sm) {
+                ForEach(filterCases) { filter in
+                    FilterChip(
+                        filter: filter,
+                        isSelected: viewModel.activeFilter == filter
+                    ) {
+                        viewModel.activeFilter = filter
+                    }
+                }
+            }
+            .padding(.horizontal, AppSpacing.base)
+            .padding(.vertical, AppSpacing.sm)
+        }
+    }
+
+    // MARK: - Athlete lookup
+
+    private func findAthlete(_ id: UUID) -> Athlete? {
+        athletes.first { $0.id == id }
     }
 
     // MARK: - 1. Resumen General
@@ -66,8 +106,8 @@ struct DashboardView: View {
                 )
                 MetricCard(
                     title: "Peso Prom.",
-                    value: viewModel.kpis.averageWeight.map { String(format: "%.1f", $0) } ?? "—",
-                    unit: viewModel.kpis.averageWeight != nil ? "kg" : nil,
+                    value: viewModel.kpis.averageWeight.map { String(format: "%.1f", fmt.convertedWeight($0)) } ?? "—",
+                    unit: viewModel.kpis.averageWeight != nil ? fmt.weightLabel : nil,
                     icon: "scalemass.fill",
                     tintColor: AppColors.warning
                 )
@@ -97,7 +137,14 @@ struct DashboardView: View {
             } else {
                 cardContainer {
                     ForEach(viewModel.recentCheckIns) { item in
-                        RecentCheckInRow(item: item)
+                        if let athlete = findAthlete(item.athleteID) {
+                            NavigationLink(destination: AthleteDetailView(athlete: athlete)) {
+                                RecentCheckInRow(item: item)
+                            }
+                            .buttonStyle(.plain)
+                        } else {
+                            RecentCheckInRow(item: item)
+                        }
                         if item.id != viewModel.recentCheckIns.last?.id {
                             Divider().padding(.leading, AppSpacing.sm)
                         }
@@ -134,7 +181,14 @@ struct DashboardView: View {
             } else {
                 cardContainer {
                     ForEach(viewModel.alerts) { alert in
-                        AlertRow(alert: alert)
+                        if let athlete = findAthlete(alert.athleteID) {
+                            NavigationLink(destination: AthleteDetailView(athlete: athlete)) {
+                                AlertRow(alert: alert)
+                            }
+                            .buttonStyle(.plain)
+                        } else {
+                            AlertRow(alert: alert)
+                        }
                         if alert.id != viewModel.alerts.last?.id {
                             Divider().padding(.leading, AppSpacing.xl + AppSpacing.sm)
                         }
@@ -159,7 +213,14 @@ struct DashboardView: View {
             } else {
                 cardContainer {
                     ForEach(Array(viewModel.topProgressors.enumerated()), id: \.element.id) { index, prog in
-                        ProgressorRow(progressor: prog, rank: index + 1)
+                        if let athlete = findAthlete(prog.id) {
+                            NavigationLink(destination: AthleteDetailView(athlete: athlete)) {
+                                ProgressorRow(progressor: prog, rank: index + 1)
+                            }
+                            .buttonStyle(.plain)
+                        } else {
+                            ProgressorRow(progressor: prog, rank: index + 1)
+                        }
                         if index < viewModel.topProgressors.count - 1 {
                             Divider().padding(.leading, AppSpacing.xl + AppSpacing.xs)
                         }
@@ -190,7 +251,14 @@ struct DashboardView: View {
             } else {
                 cardContainer {
                     ForEach(viewModel.pendingActions) { action in
-                        PendingActionRow(action: action)
+                        if let athlete = findAthlete(action.athleteID) {
+                            NavigationLink(destination: AthleteDetailView(athlete: athlete)) {
+                                PendingActionRow(action: action)
+                            }
+                            .buttonStyle(.plain)
+                        } else {
+                            PendingActionRow(action: action)
+                        }
                         if action.id != viewModel.pendingActions.last?.id {
                             Divider().padding(.leading, AppSpacing.xl + AppSpacing.sm)
                         }
@@ -215,6 +283,9 @@ struct DashboardView: View {
 
 private struct RecentCheckInRow: View {
     let item: DashboardRecentCheckIn
+    @Environment(CoachPreferencesStore.self) private var prefsStore
+
+    private var fmt: AppUnitFormatter { AppUnitFormatter(preferences: prefsStore.preferences) }
 
     var body: some View {
         HStack(alignment: .center, spacing: AppSpacing.sm) {
@@ -237,7 +308,7 @@ private struct RecentCheckInRow: View {
                 }
                 if let w = item.weight {
                     VStack(alignment: .trailing, spacing: 0) {
-                        Text(String(format: "%.1f kg", w))
+                        Text(fmt.weight(w))
                             .font(AppTypography.footnote.weight(.medium))
                             .foregroundStyle(AppColors.primaryText)
                         if let delta = item.weightChangeDelta {
@@ -254,8 +325,7 @@ private struct RecentCheckInRow: View {
     }
 
     private func deltaLabel(_ d: Double) -> String {
-        let sign = d > 0 ? "+" : ""
-        return "\(sign)\(String(format: "%.1f", d)) kg"
+        return fmt.weightDelta(d)
     }
 
     private func deltaColor(_ d: Double) -> Color {
@@ -402,6 +472,29 @@ private struct PendingActionRow: View {
     }
 }
 
+// MARK: - FilterChip
+
+private struct FilterChip: View {
+    let filter: DashboardFilter
+    let isSelected: Bool
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            Label(filter.rawValue, systemImage: filter.systemImage)
+                .font(.caption.weight(.medium))
+                .padding(.horizontal, AppSpacing.md)
+                .padding(.vertical, AppSpacing.xs)
+                .background(
+                    isSelected ? Color.accentColor : Color.secondary.opacity(0.12),
+                    in: Capsule()
+                )
+                .foregroundStyle(isSelected ? Color.white : Color.primary)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 // MARK: - Preview
 
 #Preview("iPhone 16") {
@@ -409,5 +502,6 @@ private struct PendingActionRow: View {
         DashboardView()
     }
     .modelContainer(for: [Athlete.self, CheckIn.self], inMemory: true)
+    .environment(CoachPreferencesStore())
     .previewDevice(PreviewDevice(rawValue: "iPhone 16"))
 }

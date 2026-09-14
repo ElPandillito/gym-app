@@ -86,6 +86,14 @@ struct AthleteListView: View {
                 Text("¿Deseas eliminar a \(name)? Esta acción no se puede deshacer.")
             }
         }
+        .alert("Error al eliminar", isPresented: Binding(
+            get: { viewModel.deleteError != nil },
+            set: { if !$0 { viewModel.deleteError = nil } }
+        )) {
+            Button("Aceptar", role: .cancel) {}
+        } message: {
+            Text(viewModel.deleteError ?? "")
+        }
     }
 }
 
@@ -93,6 +101,7 @@ struct AthleteListView: View {
 
 struct AthleteRowView: View {
     let athlete: Athlete
+    @Environment(CoachPreferencesStore.self) private var prefsStore
 
     var body: some View {
         HStack(spacing: 12) {
@@ -104,13 +113,31 @@ struct AthleteRowView: View {
                         .font(.subheadline.bold())
                         .foregroundStyle(Color.accentColor)
                 }
+                .overlay(alignment: .topTrailing) {
+                    if let dotColor = alertDotColor {
+                        Circle()
+                            .fill(dotColor)
+                            .frame(width: 11, height: 11)
+                            .overlay {
+                                Circle().strokeBorder(.background, lineWidth: 1.5)
+                            }
+                    }
+                }
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(athlete.name)
                     .font(.body.weight(.medium))
-                Text(lastCheckInLabel)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                HStack(spacing: 6) {
+                    Text(lastCheckInLabel)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Label(athlete.phase.displayName, systemImage: athlete.phase.systemImage)
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(Color.accentColor)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.accentColor.opacity(0.10), in: Capsule())
+                }
             }
         }
         .padding(.vertical, 4)
@@ -123,6 +150,24 @@ struct AthleteRowView: View {
             .map(String.init)
             .joined()
             .uppercased()
+    }
+
+    // Returns the dot color for the highest-severity alert, nil if none.
+    private var alertDotColor: Color? {
+        let sorted    = athlete.checkIns.sorted { $0.date < $1.date }
+        let snapshots = sorted.map(CheckInSnapshot.init)
+        guard let top = AthleteAlertEvaluator.evaluate(
+            athleteID:      athlete.id,
+            athleteName:    athlete.name,
+            sortedCheckIns: snapshots,
+            preferences:    prefsStore.preferences,
+            now:            Date()
+        ).first else { return nil }
+        switch top.severity {
+        case 3...: return AppColors.error
+        case 2:    return AppColors.warning
+        default:   return AppColors.info
+        }
     }
 
     private var lastCheckInLabel: String {
@@ -139,5 +184,6 @@ struct AthleteRowView: View {
         AthleteListView()
     }
     .modelContainer(for: Athlete.self, inMemory: true)
+    .environment(CoachPreferencesStore())
     .previewDevice(PreviewDevice(rawValue: "iPhone 16"))
 }

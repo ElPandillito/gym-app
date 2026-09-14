@@ -26,6 +26,17 @@ final class CircumferenceMeasurements {
     var rightCalf: Double?
     var leftCalf: Double?
 
+    // ISAK Level 1 girth (not in standard profile)
+    var armFlexedTensed: Double?        // cm — brazo contraído máximo
+
+    // ISAK Level 2 additional girths
+    var headGirth: Double?              // cm — perímetro cefálico
+    var wristGirth: Double?             // cm — muñeca
+    var ankleGirth: Double?             // cm — tobillo
+    var midThighGirth: Double?          // cm — muslo medio (≠ existing rightThigh at gluteal fold)
+    // g_forearm_max maps to existing rightForearm/leftForearm; g_neck maps to existing neck;
+    // g_chest maps to existing chest — no new fields needed for those three.
+
     var createdAt: Date
     var updatedAt: Date
 

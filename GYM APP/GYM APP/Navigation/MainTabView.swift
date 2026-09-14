@@ -27,12 +27,20 @@ struct MainTabView: View {
             .tag(1)
 
             NavigationStack {
+                NutritionView()
+            }
+            .tabItem {
+                Label("Nutrición", systemImage: "fork.knife")
+            }
+            .tag(2)
+
+            NavigationStack {
                 CalendarView()
             }
             .tabItem {
                 Label("Calendario", systemImage: "calendar")
             }
-            .tag(2)
+            .tag(3)
 
             NavigationStack {
                 SettingsView()
@@ -40,7 +48,7 @@ struct MainTabView: View {
             .tabItem {
                 Label("Configuración", systemImage: "gearshape.fill")
             }
-            .tag(3)
+            .tag(4)
         }
     }
 }

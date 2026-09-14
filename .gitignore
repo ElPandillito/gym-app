@@ -36,3 +36,10 @@ fastlane/test_output
 # Sensitive
 *.env
 Secrets.swift
+
+# AI session context files (internal workflow, not for repo)
+CONTEXTO_CHATGPT_*.md
+CONTEXTO_CLAUDE_*.md
+REPORTE_SESION_*.md
+PHASE_*_CONTEXT.md
+PROYECTO_ESTADO_*.md

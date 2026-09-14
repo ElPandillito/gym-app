@@ -16,6 +16,9 @@ final class CheckIn {
     // Parent
     var athlete: Athlete?
 
+    // Anthropometry profile — raw value of AnthropometryProfile enum; nil = .standard
+    var anthropometryProfileID: String?
+
     // One-to-one children (cascade delete)
     @Relationship(deleteRule: .cascade, inverse: \BodyMetrics.checkIn)
     var bodyMetrics: BodyMetrics?
@@ -26,11 +29,20 @@ final class CheckIn {
     @Relationship(deleteRule: .cascade, inverse: \SkinfoldMeasurements.checkIn)
     var skinfolds: SkinfoldMeasurements?
 
+    @Relationship(deleteRule: .cascade, inverse: \ISAKBreadthsMeasurements.checkIn)
+    var isakBreadths: ISAKBreadthsMeasurements?
+
+    @Relationship(deleteRule: .cascade, inverse: \ISAKLengthsMeasurements.checkIn)
+    var isakLengths: ISAKLengthsMeasurements?
+
     @Relationship(deleteRule: .cascade, inverse: \CoachNote.checkIn)
     var coachNote: CoachNote?
 
     @Relationship(deleteRule: .cascade, inverse: \AthleteNote.checkIn)
     var athleteNote: AthleteNote?
+
+    @Relationship(deleteRule: .cascade, inverse: \AIBodyFatAssessment.checkIn)
+    var aiBodyFatAssessment: AIBodyFatAssessment?
 
     // One-to-many children (cascade delete)
     @Relationship(deleteRule: .cascade, inverse: \ProgressPhoto.checkIn)

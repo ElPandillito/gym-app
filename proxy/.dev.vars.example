@@ -1,0 +1,5 @@
+# Local development secrets for `wrangler dev`.
+# Copy this file to .dev.vars and fill in real values.
+# .dev.vars is gitignored — never commit a real key.
+
+OPENAI_API_KEY=sk-your-key-here

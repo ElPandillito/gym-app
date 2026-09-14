@@ -9,12 +9,22 @@ import SwiftData
 struct CheckInDetailView: View {
     let checkIn: CheckIn
     @State private var viewModel = CheckInDetailViewModel()
+    @Environment(CoachPreferencesStore.self) private var prefsStore
+
+    private var fmt: AppUnitFormatter { AppUnitFormatter(preferences: prefsStore.preferences) }
+
+    private var previousCheckIn: CheckIn? {
+        checkIn.athlete?.checkIns
+            .filter { $0.date < checkIn.date }
+            .max(by: { $0.date < $1.date })
+    }
 
     var body: some View {
         List {
             bodyWeightSection
             photosSection
             igcSection
+            AIBodyFatAssessmentCard(checkIn: checkIn)
             skinfoldSection
             circumferenceSection
             notesSection
@@ -30,9 +40,24 @@ struct CheckInDetailView: View {
                     Image(systemName: "square.and.pencil")
                 }
             }
+            ToolbarItem(placement: .secondaryAction) {
+                Button {
+                    viewModel.isShowingComparison = true
+                } label: {
+                    Image(systemName: "chart.bar.doc.horizontal")
+                }
+                .disabled(previousCheckIn == nil)
+            }
         }
         .sheet(isPresented: $viewModel.isShowingEditSheet) {
             CheckInFormView(checkIn: checkIn)
+        }
+        .sheet(isPresented: $viewModel.isShowingComparison) {
+            if let prev = previousCheckIn {
+                NavigationStack {
+                    ComparisonView(checkInA: checkIn, checkInB: prev, isModal: true)
+                }
+            }
         }
         .sheet(isPresented: $viewModel.isShowingBodyMetricsForm) {
             BodyMetricsFormView(checkIn: checkIn)
@@ -43,6 +68,9 @@ struct CheckInDetailView: View {
         .sheet(isPresented: $viewModel.isShowingSkinfoldForm) {
             SkinfoldMeasurementsFormView(checkIn: checkIn)
         }
+        .sheet(isPresented: $viewModel.isShowingNotesEdit) {
+            NotesEditSheet(checkIn: checkIn)
+        }
     }
 
     // MARK: - Sections
@@ -51,7 +79,7 @@ struct CheckInDetailView: View {
         Section {
             if let metrics = checkIn.bodyMetrics {
                 if let w = metrics.bodyWeight {
-                    MetricRow(label: "Peso corporal",    value: String(format: "%.2f kg", w))
+                    MetricRow(label: "Peso corporal",    value: fmt.weight(w))
                 }
                 if let bmi = metrics.bmi {
                     MetricRow(label: "IMC",              value: String(format: "%.1f kg/m²", bmi))
@@ -60,13 +88,13 @@ struct CheckInDetailView: View {
                     MetricRow(label: "% Grasa corporal", value: String(format: "%.1f%%", f))
                 }
                 if let m = metrics.muscleMass {
-                    MetricRow(label: "Masa muscular",    value: String(format: "%.2f kg", m))
+                    MetricRow(label: "Masa muscular",    value: fmt.weight(m))
                 }
                 if let wt = metrics.waterPercentage {
                     MetricRow(label: "Agua corporal",    value: String(format: "%.1f%%", wt))
                 }
                 if let b = metrics.boneMass {
-                    MetricRow(label: "Masa ósea",        value: String(format: "%.2f kg", b))
+                    MetricRow(label: "Masa ósea",        value: String(format: "%.2f \(fmt.weightLabel)", fmt.convertedWeight(b)))
                 }
                 if let vf = metrics.visceralFatLevel {
                     MetricRow(label: "Grasa visceral",   value: String(format: "%.0f", vf))
@@ -169,20 +197,20 @@ struct CheckInDetailView: View {
     private var circumferenceSection: some View {
         Section {
             if let c = checkIn.circumferences {
-                if let v = c.neck         { MetricRow(label: "Cuello",                value: String(format: "%.1f cm", v)) }
-                if let v = c.shoulders    { MetricRow(label: "Hombros",               value: String(format: "%.1f cm", v)) }
-                if let v = c.chest        { MetricRow(label: "Pecho",                 value: String(format: "%.1f cm", v)) }
-                if let v = c.rightArm     { MetricRow(label: "Brazo derecho",         value: String(format: "%.1f cm", v)) }
-                if let v = c.leftArm      { MetricRow(label: "Brazo izquierdo",       value: String(format: "%.1f cm", v)) }
-                if let v = c.rightForearm { MetricRow(label: "Antebrazo derecho",     value: String(format: "%.1f cm", v)) }
-                if let v = c.leftForearm  { MetricRow(label: "Antebrazo izquierdo",   value: String(format: "%.1f cm", v)) }
-                if let v = c.waist        { MetricRow(label: "Cintura",               value: String(format: "%.1f cm", v)) }
-                if let v = c.abdomen      { MetricRow(label: "Abdomen",               value: String(format: "%.1f cm", v)) }
-                if let v = c.hips         { MetricRow(label: "Cadera / Glúteos",      value: String(format: "%.1f cm", v)) }
-                if let v = c.rightThigh   { MetricRow(label: "Muslo derecho",         value: String(format: "%.1f cm", v)) }
-                if let v = c.leftThigh    { MetricRow(label: "Muslo izquierdo",       value: String(format: "%.1f cm", v)) }
-                if let v = c.rightCalf    { MetricRow(label: "Pantorrilla derecha",   value: String(format: "%.1f cm", v)) }
-                if let v = c.leftCalf     { MetricRow(label: "Pantorrilla izquierda", value: String(format: "%.1f cm", v)) }
+                if let v = c.neck         { MetricRow(label: "Cuello",                value: fmt.length(v)) }
+                if let v = c.shoulders    { MetricRow(label: "Hombros",               value: fmt.length(v)) }
+                if let v = c.chest        { MetricRow(label: "Pecho",                 value: fmt.length(v)) }
+                if let v = c.rightArm     { MetricRow(label: "Brazo derecho",         value: fmt.length(v)) }
+                if let v = c.leftArm      { MetricRow(label: "Brazo izquierdo",       value: fmt.length(v)) }
+                if let v = c.rightForearm { MetricRow(label: "Antebrazo derecho",     value: fmt.length(v)) }
+                if let v = c.leftForearm  { MetricRow(label: "Antebrazo izquierdo",   value: fmt.length(v)) }
+                if let v = c.waist        { MetricRow(label: "Cintura",               value: fmt.length(v)) }
+                if let v = c.abdomen      { MetricRow(label: "Abdomen",               value: fmt.length(v)) }
+                if let v = c.hips         { MetricRow(label: "Cadera / Glúteos",      value: fmt.length(v)) }
+                if let v = c.rightThigh   { MetricRow(label: "Muslo derecho",         value: fmt.length(v)) }
+                if let v = c.leftThigh    { MetricRow(label: "Muslo izquierdo",       value: fmt.length(v)) }
+                if let v = c.rightCalf    { MetricRow(label: "Pantorrilla derecha",   value: fmt.length(v)) }
+                if let v = c.leftCalf     { MetricRow(label: "Pantorrilla izquierda", value: fmt.length(v)) }
                 Button {
                     viewModel.isShowingCircumferencesForm = true
                 } label: {
@@ -233,6 +261,16 @@ struct CheckInDetailView: View {
                 }
                 .padding(.vertical, 4)
             }
+
+            Button {
+                viewModel.isShowingNotesEdit = true
+            } label: {
+                Label(
+                    (coachText.isEmpty && athleteText.isEmpty) ? "Agregar notas" : "Editar notas",
+                    systemImage: (coachText.isEmpty && athleteText.isEmpty) ? "plus" : "pencil"
+                )
+            }
+            .foregroundStyle(Color.accentColor)
         } header: {
             Label("Notas", systemImage: "note.text")
         }
@@ -279,5 +317,6 @@ private struct CheckInEmptyRow: View {
         CheckInDetailView(checkIn: checkIn)
     }
     .modelContainer(for: [CheckIn.self], inMemory: true)
+    .environment(CoachPreferencesStore())
     .previewDevice(PreviewDevice(rawValue: "iPhone 16"))
 }

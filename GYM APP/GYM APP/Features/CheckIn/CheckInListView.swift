@@ -61,7 +61,7 @@ struct CheckInListView: View {
             }
         }
         .sheet(isPresented: $viewModel.isShowingCreateSheet) {
-            CheckInFormView(athlete: athlete)
+            CheckInWorkflowView(athlete: athlete)
         }
         .sheet(isPresented: $viewModel.isShowingEditSheet) {
             if let checkIn = viewModel.checkInToEdit {
@@ -80,6 +80,14 @@ struct CheckInListView: View {
                 let dateStr = checkIn.date.formatted(.dateTime.day().month(.wide).year())
                 Text("¿Deseas eliminar el check in del \(dateStr)? Esta acción no se puede deshacer.")
             }
+        }
+        .alert("Error al eliminar", isPresented: Binding(
+            get: { viewModel.deleteError != nil },
+            set: { if !$0 { viewModel.deleteError = nil } }
+        )) {
+            Button("Aceptar", role: .cancel) {}
+        } message: {
+            Text(viewModel.deleteError ?? "")
         }
     }
 }

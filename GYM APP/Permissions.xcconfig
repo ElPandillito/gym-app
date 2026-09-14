@@ -1,0 +1,5 @@
+// Privacy permissions required by GYM APP
+// Assign this file to all configurations via:
+//   Project settings → Info tab → Configurations → GYM APP (each row)
+
+INFOPLIST_KEY_NSCameraUsageDescription = La aplicación usa la cámara para capturar fotografías de posing del atleta durante el check-in.

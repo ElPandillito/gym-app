@@ -19,8 +19,8 @@ final class PhotoImageCache {
     private let cache = NSCache<NSString, PlatformImage>()
 
     private init() {
-        cache.countLimit = 100
-        cache.totalCostLimit = 50 * 1024 * 1024 // 50 MB
+        cache.countLimit = 200
+        cache.totalCostLimit = 100 * 1024 * 1024 // 100 MB
     }
 
     func image(for key: String) -> PlatformImage? {

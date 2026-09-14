@@ -4,14 +4,16 @@
 //
 
 import SwiftUI
+import OSLog
 
-@Observable
+@MainActor @Observable
 final class CheckInListViewModel {
     var isShowingCreateSheet: Bool = false
     var checkInToEdit: CheckIn?   = nil
     var isShowingEditSheet: Bool  = false
     var checkInToDelete: CheckIn? = nil
     var isShowingDeleteAlert: Bool = false
+    var deleteError: String?      = nil
 
     func sorted(_ checkIns: [CheckIn]) -> [CheckIn] {
         checkIns.sorted { $0.date > $1.date }
@@ -33,7 +35,14 @@ final class CheckInListViewModel {
 
     func confirmDelete(using repository: CheckInRepository) {
         guard let checkIn = checkInToDelete else { return }
-        try? repository.delete(checkIn)
+        isShowingDeleteAlert = false
+        deleteError = nil
+        do {
+            try repository.delete(checkIn)
+        } catch {
+            deleteError = "No se pudo eliminar el check in. Inténtalo de nuevo."
+            AppLogger.persistence.error("CheckIn delete failed")
+        }
         checkInToDelete = nil
     }
 

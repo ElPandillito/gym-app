@@ -9,6 +9,9 @@ import SwiftData
 struct AthleteFormView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
+    @Environment(CoachPreferencesStore.self) private var prefsStore
+
+    private var fmt: AppUnitFormatter { AppUnitFormatter(preferences: prefsStore.preferences) }
 
     @State private var viewModel: AthleteFormViewModel
 
@@ -36,14 +39,22 @@ struct AthleteFormView: View {
                     }
                 }
 
+                Section("Fase de entrenamiento") {
+                    Picker("Fase", selection: $viewModel.phase) {
+                        ForEach(AthletePhase.allCases, id: \.self) { phase in
+                            Label(phase.displayName, systemImage: phase.systemImage).tag(phase)
+                        }
+                    }
+                }
+
                 Section("Medidas") {
                     HStack {
-                        TextField("Estatura (cm)", text: $viewModel.heightText)
+                        TextField("Estatura (\(fmt.lengthLabel))", text: $viewModel.heightText)
                             #if os(iOS)
                             .keyboardType(.decimalPad)
                             #endif
                             .onChange(of: viewModel.heightText) { _, _ in viewModel.validateHeight() }
-                        Text("cm")
+                        Text(fmt.lengthLabel)
                             .foregroundStyle(.secondary)
                     }
 
@@ -68,6 +79,7 @@ struct AthleteFormView: View {
                 }
             }
             .navigationTitle(viewModel.title)
+            .onAppear { viewModel.apply(preferences: prefsStore.preferences) }
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -82,6 +94,14 @@ struct AthleteFormView: View {
                     }
                     .disabled(!viewModel.canSave)
                 }
+            }
+            .alert("Error al guardar", isPresented: Binding(
+                get: { viewModel.saveError != nil },
+                set: { if !$0 { viewModel.saveError = nil } }
+            )) {
+                Button("Aceptar", role: .cancel) {}
+            } message: {
+                Text(viewModel.saveError ?? "")
             }
         }
     }

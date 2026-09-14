@@ -19,42 +19,9 @@ struct DashboardRecentCheckIn: Identifiable {
     let photoCount: Int
 }
 
-struct DashboardAlert: Identifiable {
-
-    enum Kind {
-        case inactive(days: Int)
-        case negativeTrend
-        case noPhotos
-        case incompleteMetrics
-    }
-
-    let athleteID: UUID
-    let athleteName: String
-    let kind: Kind
-
-    // Deterministic: same athlete + same alert kind → same ID across reloads
-    var id: String { athleteID.uuidString + "-" + kind.stableKey }
-
-    var severity: Int {
-        switch kind {
-        case .inactive:          return 3
-        case .negativeTrend:     return 2
-        case .noPhotos:          return 1
-        case .incompleteMetrics: return 1
-        }
-    }
-}
-
-private extension DashboardAlert.Kind {
-    var stableKey: String {
-        switch self {
-        case .inactive:          return "inactive"
-        case .negativeTrend:     return "negativeTrend"
-        case .noPhotos:          return "noPhotos"
-        case .incompleteMetrics: return "incompleteMetrics"
-        }
-    }
-}
+/// DashboardAlert is the shared AthleteAlert type.
+/// Alert rules and their single source of truth live in AthleteAlertEvaluator.
+typealias DashboardAlert = AthleteAlert
 
 struct DashboardProgressor: Identifiable {
     let id: UUID   // athleteID
@@ -125,32 +92,47 @@ final class DashboardViewModel {
     var topProgressors: [DashboardProgressor]    = []
     var pendingActions: [DashboardPendingAction] = []
     var isLoading                                = false
+    var activeFilter: DashboardFilter            = .all
 
-    // MARK: - Thresholds
+    // MARK: - Thresholds (non-preference UI caps)
 
-    private let inactivityDays     = 14
-    private let trendWindowDays    = 60
-    private let progressWindowDays = 30
-    private let maxAlerts          = 10
-    private let maxProgressors     = 5
-    private let maxRecent          = 10
-    private let maxActions         = 10
+    private let maxProgressors = 5
+    private let maxRecent      = 10
+    private let maxActions     = 10
+
+    // Preference snapshot — updated each load(); private methods read from this.
+    private var preferences: CoachPreferences = .default
 
     // MARK: - Load
 
-    func load(athletes: [Athlete], checkIns: [CheckIn]) {
+    func load(athletes: [Athlete], checkIns: [CheckIn], preferences: CoachPreferences = .default) {
+        self.preferences = preferences
         guard !athletes.isEmpty else { reset(); return }
         isLoading = true
         defer { isLoading = false }
 
-        let ctx = buildContext(athletes: athletes, checkIns: checkIns)
-        let (newKPIs, thisWeek) = buildKPIs(athletes: athletes, checkIns: checkIns, ctx: ctx)
+        // Apply active filter — scopes all sections to the matching athlete subset
+        let filtered: [Athlete]
+        let filteredCIs: [CheckIn]
+        if activeFilter == .all {
+            filtered    = athletes
+            filteredCIs = checkIns
+        } else {
+            filtered        = activeFilter.apply(to: athletes, checkIns: checkIns, preferences: preferences)
+            let filteredIDs = Set(filtered.map { $0.id })
+            filteredCIs     = checkIns.filter { ci in
+                ci.athlete.map { filteredIDs.contains($0.id) } ?? false
+            }
+        }
+
+        let ctx = buildContext(athletes: filtered, checkIns: filteredCIs)
+        let (newKPIs, thisWeek) = buildKPIs(athletes: filtered, checkIns: filteredCIs, ctx: ctx)
         kpis             = newKPIs
         checkInsThisWeek = thisWeek
-        recentCheckIns   = buildRecentActivity(checkIns: checkIns, ctx: ctx)
-        alerts           = buildAlerts(athletes: athletes, ctx: ctx)
-        topProgressors   = buildProgressors(athletes: athletes, ctx: ctx)
-        pendingActions   = buildPendingActions(athletes: athletes, ctx: ctx)
+        recentCheckIns   = buildRecentActivity(checkIns: filteredCIs, ctx: ctx)
+        alerts           = buildAlerts(athletes: filtered, ctx: ctx)
+        topProgressors   = buildProgressors(athletes: filtered, ctx: ctx)
+        pendingActions   = buildPendingActions(athletes: filtered, ctx: ctx)
     }
 
     // MARK: - Private: Shared context
@@ -177,7 +159,7 @@ final class DashboardViewModel {
             ciByAthlete[aid, default: []].append(ci)
         }
         for key in ciByAthlete.keys {
-            ciByAthlete[key]!.sort { $0.date < $1.date }
+            ciByAthlete[key]?.sort { $0.date < $1.date }
         }
 
         let nameByID: [UUID: String] = Dictionary(uniqueKeysWithValues: athletes.map { ($0.id, $0.name) })
@@ -274,51 +256,20 @@ final class DashboardViewModel {
         athletes: [Athlete],
         ctx: LoadContext
     ) -> [DashboardAlert] {
-        let trendCutoff = ctx.calendar.date(byAdding: .day, value: -trendWindowDays, to: ctx.now)!
         var result: [DashboardAlert] = []
 
         for athlete in athletes {
-            guard result.count < maxAlerts else { break }
-            guard let snap = ctx.latestSnapByID[athlete.id] else { continue }
-
-            // Reuse pre-computed daysSince (shared with buildPendingActions)
-            let daysSince = ctx.daysSinceLatestByID[athlete.id] ?? Int.max
-
-            if daysSince >= inactivityDays {
-                result.append(.init(athleteID: athlete.id, athleteName: athlete.name,
-                                    kind: .inactive(days: daysSince)))
-                continue
-            }
-
-            // Negative body fat trend (60-day window, ≥ 3 data points, > 1 pp increase)
-            let bfPoints: [DataPoint] = (ctx.ciByAthlete[athlete.id] ?? [])
-                .filter { $0.date >= trendCutoff }
-                .compactMap { ci in
-                    (ci.bodyMetrics?.bodyFatPercentage ?? ci.skinfolds?.estimatedBodyFatPercentage)
-                        .map { DataPoint(date: ci.date, value: $0) }
-                }
-            if bfPoints.count >= 3 {
-                let trend    = Trend.compute(from: bfPoints)
-                let spanDays = Double(
-                    ctx.calendar.dateComponents([.day], from: bfPoints.first!.date,
-                                               to: bfPoints.last!.date).day ?? 1
-                )
-                if trend.direction == .rising, trend.slope * spanDays > 1.0 {
-                    result.append(.init(athleteID: athlete.id, athleteName: athlete.name,
-                                        kind: .negativeTrend))
-                    continue
-                }
-            }
-
-            if snap.photoCount == 0 {
-                result.append(.init(athleteID: athlete.id, athleteName: athlete.name,
-                                    kind: .noPhotos))
-                continue
-            }
-
-            if snap.bodyMetrics?.bodyWeight == nil {
-                result.append(.init(athleteID: athlete.id, athleteName: athlete.name,
-                                    kind: .incompleteMetrics))
+            guard result.count < preferences.maxAlertsShown else { break }
+            let snapshots = (ctx.ciByAthlete[athlete.id] ?? []).map(CheckInSnapshot.init)
+            // Dashboard shows at most one alert per athlete (highest severity)
+            if let alert = AthleteAlertEvaluator.evaluate(
+                athleteID:      athlete.id,
+                athleteName:    athlete.name,
+                sortedCheckIns: snapshots,
+                preferences:    preferences,
+                now:            ctx.now
+            ).first {
+                result.append(alert)
             }
         }
 
@@ -331,7 +282,7 @@ final class DashboardViewModel {
         athletes: [Athlete],
         ctx: LoadContext
     ) -> [DashboardProgressor] {
-        let progressCutoff = ctx.calendar.date(byAdding: .day, value: -progressWindowDays, to: ctx.now)!
+        let progressCutoff = ctx.calendar.date(byAdding: .day, value: -preferences.progressWindowDays, to: ctx.now) ?? ctx.now
         var result: [DashboardProgressor] = []
 
         for athlete in athletes {
@@ -340,7 +291,7 @@ final class DashboardViewModel {
                   let latest = sorted.last,
                   latest.date >= progressCutoff else { continue }
 
-            let base = sorted.last(where: { $0.date < progressCutoff }) ?? sorted.first!
+            guard let base = sorted.last(where: { $0.date < progressCutoff }) ?? sorted.first else { continue }
             guard base.id != latest.id else { continue }
 
             let bw = base.bodyMetrics?.bodyWeight
@@ -391,7 +342,7 @@ final class DashboardViewModel {
             let daysSince = ctx.daysSinceLatestByID[athlete.id] ?? Int.max
             let sorted    = ctx.ciByAthlete[athlete.id] ?? []
 
-            if daysSince >= inactivityDays {
+            if daysSince >= preferences.inactivityThresholdDays {
                 result.append(.init(athleteID: athlete.id, athleteName: athlete.name,
                                     kind: .requestCheckIn))
             } else if snap.bodyMetrics?.bodyWeight == nil {

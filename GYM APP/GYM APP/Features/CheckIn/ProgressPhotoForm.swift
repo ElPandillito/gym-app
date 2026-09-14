@@ -218,7 +218,7 @@ struct ProgressPhotoForm: View {
         if provider.hasItemConformingToTypeIdentifier("public.image") {
             _ = provider.loadDataRepresentation(forTypeIdentifier: "public.image") { data, _ in
                 guard let data, let image = NSImage(data: data) else { return }
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     selectedData = data
                     previewImage = image
                 }
@@ -229,7 +229,7 @@ struct ProgressPhotoForm: View {
                       let url = URL(dataRepresentation: data, relativeTo: nil, isAbsolute: true),
                       let imageData = try? Data(contentsOf: url),
                       let image = NSImage(data: imageData) else { return }
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     selectedData = imageData
                     previewImage = image
                 }
