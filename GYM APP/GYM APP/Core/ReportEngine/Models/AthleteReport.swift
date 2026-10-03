@@ -7,7 +7,7 @@ import Foundation
 
 /// Fully serializable report model. The ReportEngine builds this;
 /// a future rendering service (PDF, CSV) consumes it.
-struct AthleteReport: Sendable {
+struct AthleteReport: Sendable, Encodable {
     let id: UUID
     let type: ReportType
     let generatedAt: Date
@@ -18,7 +18,7 @@ struct AthleteReport: Sendable {
     let metadata: ReportMetadata
 }
 
-struct ReportMetadata: Sendable {
+struct ReportMetadata: Sendable, Encodable {
     let generatedBy: String         // App name/version
     let format: ReportFormat
     let includePhotos: Bool

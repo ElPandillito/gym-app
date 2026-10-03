@@ -5,7 +5,7 @@
 
 import Foundation
 
-enum ReportFormat: String, CaseIterable {
+enum ReportFormat: String, CaseIterable, Encodable {
     case pdf  = "pdf"
     case csv  = "csv"
     case json = "json"
@@ -22,7 +22,7 @@ enum ReportFormat: String, CaseIterable {
     var displayName: String { rawValue.uppercased() }
 }
 
-enum ReportType: String, CaseIterable {
+enum ReportType: String, CaseIterable, Encodable {
     case athlete       = "athlete"
     case progress      = "progress"
     case comparison    = "comparison"

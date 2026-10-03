@@ -79,7 +79,126 @@ enum AthleteReportSerializer {
         return out.joined(separator: "\n")
     }
 
-    // MARK: - Private
+    // MARK: - JSON
+
+    /// Serializes the full `AthleteReport` domain model to deterministic UTF-8 JSON.
+    /// Reuses `AthleteReport`'s own `Encodable` conformance — no parallel JSON model.
+    /// Keys are sorted and dates use ISO 8601 for a stable, machine-consumable output.
+    static func json(from report: AthleteReport) throws -> Data {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        encoder.dateEncodingStrategy = .iso8601
+        return try encoder.encode(report)
+    }
+
+    // MARK: - CSV
+
+    /// Serializes the report to RFC 4180-compliant UTF-8 CSV.
+    /// Outputs raw SI units (kg, %, cm) for machine interoperability.
+    /// Optional fields that have no data are omitted entirely.
+    static func csv(from report: AthleteReport) -> String {
+        let a = report.athlete
+        let s = report.statistics
+
+        var rows: [(key: String, value: String, unit: String)] = []
+
+        // ── Athlete ──────────────────────────────────────────
+        rows.append(("athlete.name",    a.name,                      ""))
+        rows.append(("athlete.gender",  a.gender.displayName,        ""))
+        if let age = a.ageYears { rows.append(("athlete.age_years",  csvDbl(age, 1),  "years")) }
+        if let h   = a.heightCm { rows.append(("athlete.height_cm",  csvDbl(h, 1),    "cm")) }
+        rows.append(("report.generated_at", isoDay(report.generatedAt), ""))
+
+        // ── Statistics ───────────────────────────────────────
+        rows.append(("stats.check_in_count", "\(s.checkInCount)", ""))
+        if let p = s.period {
+            rows.append(("stats.period_start", isoDay(p.start), ""))
+            rows.append(("stats.period_end",   isoDay(p.end),   ""))
+        }
+        if let avg = s.averageDaysBetweenCheckIns {
+            rows.append(("stats.avg_days_between_checkins", csvDbl(avg, 1), "days"))
+        }
+
+        // ── OLS Trends ───────────────────────────────────────
+        rows += trendRows("weight",      s.weightTrend,     "kg")
+        rows += trendRows("body_fat",    s.bodyFatTrend,    "%")
+        rows += trendRows("muscle_mass", s.muscleMassTrend, "kg")
+
+        // ── Personal records ─────────────────────────────────
+        if let r = s.lowestBodyFat  { rows += recordRows("lowest_body_fat",  r, "%") }
+        if let r = s.highestBodyFat { rows += recordRows("highest_body_fat", r, "%") }
+        if let r = s.lowestWeight   { rows += recordRows("lowest_weight",    r, "kg") }
+        if let r = s.highestWeight  { rows += recordRows("highest_weight",   r, "kg") }
+        if let r = s.peakMuscleMass { rows += recordRows("peak_muscle_mass", r, "kg") }
+
+        var lines = ["key,value,unit"]
+        for row in rows {
+            lines.append("\(esc(row.key)),\(esc(row.value)),\(esc(row.unit))")
+        }
+        return lines.joined(separator: "\r\n")
+    }
+
+    // MARK: - CSV helpers
+
+    private static func trendRows(
+        _ metric: String,
+        _ trend: Trend,
+        _ unit: String
+    ) -> [(key: String, value: String, unit: String)] {
+        [
+            ("trend.\(metric).direction",       trendDir(trend),           ""),
+            ("trend.\(metric).slope_per_day",   csvDbl(trend.slope, 6),    "\(unit)/day"),
+        ]
+    }
+
+    private static func recordRows(
+        _ name: String,
+        _ record: MetricRecord,
+        _ unit: String
+    ) -> [(key: String, value: String, unit: String)] {
+        [
+            ("record.\(name).value", csvDbl(record.value, 4), unit),
+            ("record.\(name).date",  isoDay(record.date),     ""),
+        ]
+    }
+
+    private static func trendDir(_ trend: Trend) -> String {
+        switch trend.direction {
+        case .rising:       return "rising"
+        case .falling:      return "falling"
+        case .flat:         return "flat"
+        case .insufficient: return "insufficient"
+        }
+    }
+
+    /// Wraps a field in quotes and doubles any interior quotes (RFC 4180 §2).
+    static func esc(_ field: String) -> String {
+        guard field.contains(",") || field.contains("\"")
+                || field.contains("\n") || field.contains("\r") else {
+            return field
+        }
+        return "\"" + field.replacingOccurrences(of: "\"", with: "\"\"") + "\""
+    }
+
+    /// Formats a Double with a fixed number of fraction digits using POSIX locale
+    /// so the decimal separator is always "." regardless of device locale.
+    private static func csvDbl(_ value: Double, _ fractionDigits: Int) -> String {
+        let nf = NumberFormatter()
+        nf.locale            = Locale(identifier: "en_US_POSIX")
+        nf.numberStyle       = .decimal
+        nf.minimumFractionDigits = fractionDigits
+        nf.maximumFractionDigits = fractionDigits
+        nf.usesGroupingSeparator = false
+        return nf.string(from: NSNumber(value: value)) ?? "\(value)"
+    }
+
+    private static func isoDay(_ date: Date) -> String {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withFullDate, .withDashSeparatorInDate]
+        return f.string(from: date)
+    }
+
+    // MARK: - Private (text)
 
     private static func trendLine(_ trend: Trend, slopeMonthly: Double, unit: String) -> String {
         switch trend.direction {

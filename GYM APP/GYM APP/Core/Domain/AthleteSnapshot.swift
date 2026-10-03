@@ -7,7 +7,7 @@ import Foundation
 
 /// Immutable value-type mirror of Athlete — free of SwiftData dependencies.
 /// Used by Engines so they remain testable without a ModelContainer.
-struct AthleteSnapshot: Sendable {
+struct AthleteSnapshot: Sendable, Encodable {
     let id: UUID
     let name: String
     let gender: Gender

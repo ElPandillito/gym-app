@@ -7,7 +7,7 @@ import Foundation
 
 /// Raw direction of a numeric change between two check-ins.
 /// The UI layer decides whether a direction is "good" or "bad" based on context.
-enum ChangeDirection: Equatable {
+enum ChangeDirection: String, Equatable, Encodable {
     case increased
     case decreased
     case unchanged

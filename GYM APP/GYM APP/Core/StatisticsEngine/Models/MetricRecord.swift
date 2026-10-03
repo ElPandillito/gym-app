@@ -6,7 +6,7 @@
 import Foundation
 
 /// A best/worst metric value with its timestamp and check-in reference.
-struct MetricRecord: Equatable, Sendable {
+struct MetricRecord: Equatable, Sendable, Encodable {
     let value: Double
     let date: Date
     let checkInID: UUID

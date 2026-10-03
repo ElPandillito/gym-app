@@ -6,13 +6,13 @@
 import Foundation
 
 /// Linear trend computed over a series of DataPoints.
-struct Trend: Equatable, Sendable {
+struct Trend: Equatable, Sendable, Encodable {
     let slope: Double           // Units per day
     let intercept: Double
     let dataPointCount: Int
     let direction: TrendDirection
 
-    enum TrendDirection: Equatable {
+    enum TrendDirection: String, Equatable, Encodable {
         case rising
         case falling
         case flat

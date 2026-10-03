@@ -6,7 +6,7 @@
 import Foundation
 
 /// The delta between one metric value in two check-ins.
-struct MetricDiff: Equatable {
+struct MetricDiff: Equatable, Encodable {
     let before: Double?
     let after: Double?
     let absoluteChange: Double?         // after - before
@@ -36,7 +36,7 @@ struct MetricDiff: Equatable {
 
 // MARK: - CircumferencesDiff
 
-struct CircumferencesDiff: Equatable {
+struct CircumferencesDiff: Equatable, Encodable {
     let neck: MetricDiff
     let shoulders: MetricDiff
     let chest: MetricDiff

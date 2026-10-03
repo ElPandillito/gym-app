@@ -6,7 +6,7 @@
 import Foundation
 
 /// Complete diff model between two CheckIns. Pure value type, no SwiftData or UI dependencies.
-struct CheckInComparison: Equatable {
+struct CheckInComparison: Equatable, Encodable {
     let id: UUID
     let checkInAID: UUID
     let checkInBID: UUID

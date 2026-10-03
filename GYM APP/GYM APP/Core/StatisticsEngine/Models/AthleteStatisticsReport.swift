@@ -6,7 +6,7 @@
 import Foundation
 
 /// Full statistical summary for a single athlete over a set of check-ins.
-struct AthleteStatisticsReport: Sendable {
+struct AthleteStatisticsReport: Sendable, Encodable {
     let athleteID: UUID
     let period: DateInterval?
     let checkInCount: Int
@@ -25,7 +25,17 @@ struct AthleteStatisticsReport: Sendable {
     let peakMuscleMass: MetricRecord?
 
     // Time-series data per metric (for future charts)
+    // Not part of the JSON report output — see CodingKeys below.
     let timeSeries: [MetricKey: [DataPoint]]
+
+    /// `timeSeries` is intentionally excluded from JSON: it's an internal
+    /// chart-data cache, not part of the athlete report's semantic content
+    /// (PDF/CSV/text also never surface it).
+    enum CodingKeys: String, CodingKey {
+        case athleteID, period, checkInCount, averageDaysBetweenCheckIns
+        case weightTrend, bodyFatTrend, muscleMassTrend
+        case lowestBodyFat, highestBodyFat, lowestWeight, highestWeight, peakMuscleMass
+    }
 
     static func empty(athleteID: UUID) -> AthleteStatisticsReport {
         AthleteStatisticsReport(
