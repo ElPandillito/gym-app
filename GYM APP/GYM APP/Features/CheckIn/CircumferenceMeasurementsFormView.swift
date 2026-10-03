@@ -54,6 +54,7 @@ struct CircumferenceMeasurementsFormView: View {
                     MetricInputRow(label: "Pantorrilla izquierda", text: $viewModel.leftCalfText,   unit: fmt.lengthLabel)
                 }
             }
+            .formStyle(.grouped)
             .navigationTitle(viewModel.isEditing ? "Editar Medidas" : "Registrar Medidas")
             .onAppear { viewModel.apply(preferences: prefsStore.preferences) }
             #if os(iOS)

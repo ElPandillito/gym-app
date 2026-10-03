@@ -68,6 +68,7 @@ struct BodyMetricsFormView: View {
                     MetricInputRow(label: "Metabolismo basal", text: $viewModel.basalMetabolicRateText, unit: "kcal")
                 }
             }
+            .formStyle(.grouped)
             .navigationTitle(viewModel.isEditing ? "Editar Métricas" : "Registrar Peso")
             .onAppear { viewModel.apply(preferences: prefsStore.preferences) }
             #if os(iOS)

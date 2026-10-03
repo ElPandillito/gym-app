@@ -10,10 +10,13 @@
 //  - Removing or renaming fields → requires custom migration stage.
 //  - NEVER wipe the store to recover from schema errors.
 //
-//  To add a new version:
-//  1. Define GYMAppSchemaV(N) with updated models.
-//  2. Add a MigrationStage (lightweight or custom) between V(N-1) and V(N).
-//  3. Append the new schema to GYMAppMigrationPlan.schemas.
+//  To add a new schema version:
+//  • Optional fields only: bump versionIdentifier (patch) in GYMAppSchemaV1 and add
+//    the property to the @Model class. SwiftData infers the migration automatically.
+//    No migration plan or new schema enum is needed.
+//  • Non-Optional fields, renames, or deletions: introduce GYMAppSchemaV2 with the
+//    updated model list, declare a GYMAppMigrationPlan with explicit stages, and
+//    update ModelContainer in GYM_APPApp.swift to pass migrationPlan:.
 
 import SwiftData
 

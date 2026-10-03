@@ -28,7 +28,8 @@ struct GYM_APPApp: App {
             )
             FoodSeeder.seedIfNeeded(context: container.mainContext)
             applyStoreProtection(to: configuration.url)   // D2: FileProtection + no-backup
-            AppLogger.persistence.info("ModelContainer ready — schema v1.0.1")
+            let v = GYMAppSchemaV1.versionIdentifier
+            AppLogger.persistence.info("ModelContainer ready — schema v\(v.major, privacy: .public).\(v.minor, privacy: .public).\(v.patch, privacy: .public)")
             return .success(container)
         } catch {
             // Log domain + code only — never log store URLs or user data.

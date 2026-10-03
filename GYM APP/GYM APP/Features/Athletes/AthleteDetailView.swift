@@ -197,6 +197,14 @@ private struct AthleteOverviewSectionView: View {
 
                 AthleteProgressSummaryView(summary: viewModel.progressSummary)
 
+                if !viewModel.predictionHorizons.isEmpty || viewModel.isPredicting {
+                    ProgressPredictionCard(
+                        horizons:       viewModel.predictionHorizons,
+                        isPredicting:   viewModel.isPredicting,
+                        currentMetrics: viewModel.currentMetrics
+                    )
+                }
+
                 if let report = viewModel.statisticsReport {
                     AthleteTrendsSectionView(report: report)
                 }

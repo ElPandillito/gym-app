@@ -1,0 +1,49 @@
+# Xcode
+*.xcuserstate
+xcuserdata/
+*.xcscmblueprint
+*.xccheckout
+
+# Build
+build/
+DerivedData/
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Packages/
+Package.resolved
+
+# CocoaPods
+Pods/
+Podfile.lock
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Sensitive
+*.env
+Secrets.swift
+AIServiceConfiguration.swift
+
+# AI session context files (internal workflow, not for repo)
+CONTEXTO_CHATGPT_*.md
+CONTEXTO_CLAUDE_*.md
+REPORTE_SESION_*.md
+PHASE_*_CONTEXT.md
+PROYECTO_ESTADO_*.md
+
+# Academic SQL schema (parallel relational model, not part of the iOS app)
+SQL/

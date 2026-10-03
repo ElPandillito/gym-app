@@ -288,6 +288,7 @@ struct CheckInWorkflowView: View {
                 WorkflowMetricRow(label: "Metabolismo basal", text: $viewModel.bodyMetrics.basalMetabolicRateText, unit: "kcal")
             }
         }
+        .formStyle(.grouped)
     }
 
     // MARK: - Circunferencias step
@@ -333,6 +334,7 @@ struct CheckInWorkflowView: View {
                 }
             }
         }
+        .formStyle(.grouped)
     }
 
     // MARK: - Plicometría step
@@ -444,6 +446,7 @@ struct CheckInWorkflowView: View {
                 }
             }
         }
+        .formStyle(.grouped)
     }
 
     // MARK: - Diámetros step (ISAK breadths/depths)
@@ -492,6 +495,7 @@ struct CheckInWorkflowView: View {
                 }
             }
         }
+        .formStyle(.grouped)
     }
 
     // MARK: - Longitudes step (ISAK Level 2 only)
@@ -532,6 +536,7 @@ struct CheckInWorkflowView: View {
                 }
             }
         }
+        .formStyle(.grouped)
     }
 
     // MARK: - Fotos step
@@ -657,6 +662,7 @@ struct CheckInWorkflowView: View {
                 Text("Comentarios o sensaciones del atleta.")
             }
         }
+        .formStyle(.grouped)
     }
 
     // MARK: - Revisión step
@@ -741,6 +747,7 @@ struct CheckInWorkflowView: View {
                 }
             }
         }
+        .formStyle(.grouped)
     }
 
     // MARK: - Shared row components

@@ -37,6 +37,7 @@ struct SkinfoldMeasurementsFormView: View {
                 resultSection
                 contextSection
             }
+            .formStyle(.grouped)
             .navigationTitle(viewModel.isEditing ? "Editar Plicometría" : "Registrar Plicometría")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)

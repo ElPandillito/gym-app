@@ -58,6 +58,25 @@ final class AthleteOverviewViewModel {
     /// Full OLS trend analysis — populated when at least 2 check-ins exist.
     private(set) var statisticsReport: AthleteStatisticsReport?
 
+    // MARK: - Predictions
+
+    struct PredictionHorizon {
+        let daysAhead: Int
+        let weight: PredictionResult?
+        let bodyFat: PredictionResult?
+        let muscleMass: PredictionResult?
+
+        var averageConfidence: Double {
+            let values = [weight, bodyFat, muscleMass].compactMap { $0?.modelConfidence }
+            guard !values.isEmpty else { return 0 }
+            return values.reduce(0, +) / Double(values.count)
+        }
+    }
+
+    private(set) var predictionHorizons: [PredictionHorizon] = []
+    private(set) var isPredicting = false
+    private var predictionTask: Task<Void, Never>?
+
     // MARK: - Build (called once per athlete change)
 
     func build(from athlete: Athlete, preferences: CoachPreferences = .default) {
@@ -144,6 +163,33 @@ final class AthleteOverviewViewModel {
         statisticsReport = snapshots.count >= 2
             ? StatisticsEngine.compute(athleteID: athlete.id, snapshots: snapshots)
             : nil
+
+        // Async predictions — cancel any in-flight task before starting a new one
+        predictionTask?.cancel()
+        predictionTask = Task { await loadPredictions(snapshots: snapshots) }
+    }
+
+    // MARK: - Async Predictions
+
+    private func loadPredictions(snapshots: [CheckInSnapshot]) async {
+        guard snapshots.count >= 2 else {
+            predictionHorizons = []
+            return
+        }
+        isPredicting = true
+        let stub = ProgressPredictionStub()
+        var result: [PredictionHorizon] = []
+        for days in [30, 60, 90] {
+            guard !Task.isCancelled else { break }
+            let w  = try? await stub.predict(metric: .weight,    snapshots: snapshots, daysAhead: days)
+            let bf = try? await stub.predict(metric: .bodyFat,   snapshots: snapshots, daysAhead: days)
+            let mm = try? await stub.predict(metric: .muscleMass, snapshots: snapshots, daysAhead: days)
+            result.append(PredictionHorizon(daysAhead: days, weight: w, bodyFat: bf, muscleMass: mm))
+        }
+        if !Task.isCancelled {
+            predictionHorizons = result
+        }
+        isPredicting = false
     }
 
     // MARK: - Helpers

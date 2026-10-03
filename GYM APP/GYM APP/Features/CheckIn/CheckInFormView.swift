@@ -72,6 +72,7 @@ struct CheckInFormView: View {
                     }
                 }
             }
+            .formStyle(.grouped)
             .navigationTitle(title)
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
