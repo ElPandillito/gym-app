@@ -1,7 +1,29 @@
 name = "gym-app-image-proxy"
 main = "src/index.ts"
-compatibility_date = "2024-01-01"
+compatibility_date = "2025-01-01"
+
+# Required secrets — set via `wrangler secret put` before deployment:
+#   wrangler secret put OPENAI_API_KEY   # OpenAI API key (server-side only)
+#   wrangler secret put APP_TOKEN        # Shared token validated in X-App-Token header
+#
+# NEVER add real secret values to this file or to [vars].
+# Secrets live only in Cloudflare's encrypted secret store.
+
+# Cloudflare Workers Rate Limiting binding (stable syntax, Wrangler >= 4.36.0).
+# Enforcement is per Cloudflare location — each edge location maintains its own
+# counter. This is not a single globally shared counter across all locations.
+#
+# namespace_id: a positive integer identifying this rate limiter within the account.
+#   Cloudflare provisions this rate limiter automatically on first deploy.
+#   Verify it in the Cloudflare dashboard: Workers & Pages > your worker > Bindings.
+#   MANUAL CLOUDFLARE ACCOUNT CHECK REQUIRED: uniqueness at the account level
+#   cannot be verified from local config alone.
+# simple.limit:  max requests per IP per 60-second window, per Cloudflare location
+# simple.period: window size in seconds
+[[ratelimits]]
+name = "RATE_LIMITER"
+namespace_id = "47001"
+simple = { limit = 10, period = 60 }
 
 # Deploy: wrangler deploy
-# Local dev: wrangler dev
-# Set secret: wrangler secret put OPENAI_API_KEY
+# Local dev: wrangler dev  (rate limiting is simulated locally by wrangler)

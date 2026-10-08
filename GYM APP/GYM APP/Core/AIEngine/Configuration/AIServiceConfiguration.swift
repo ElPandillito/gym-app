@@ -30,6 +30,8 @@ enum AIServiceConfiguration {
         if let key = Secrets.openAIAPIKey, !key.isEmpty {
             return RealImageGenerationService(apiKey: key)
         }
-        return ImageGenerationStub()
+        // Image generation is suspended (Phase 47D). The feature will be
+        // re-enabled when AppConfiguration.imageGenerationProxyURL is set.
+        return ImageGenerationStub(behavior: .failure(.unavailable))
     }
 }

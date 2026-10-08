@@ -4,19 +4,35 @@
  * Routes food image generation requests through this server-side proxy
  * so the OpenAI API key never exists inside the iOS/macOS client bundle.
  *
- * Required secret (set via `wrangler secret put OPENAI_API_KEY`):
- *   OPENAI_API_KEY — your OpenAI key, stored only in Cloudflare's environment
+ * Required secrets (set via `wrangler secret put`):
+ *   OPENAI_API_KEY — OpenAI key, stored only in Cloudflare's environment
+ *   APP_TOKEN      — shared token validated in the X-App-Token request header
+ *
+ * Required binding (configured in wrangler.toml):
+ *   RATE_LIMITER — Cloudflare Workers Rate Limiting binding (per Cloudflare location)
  *
  * Endpoint:
  *   POST /v1/image-generation
+ *   Headers: X-App-Token: <APP_TOKEN>
  *   Body:    { "prompt": string, "requestID": string }
  *   200 OK:  { "imageData": string (base64), "mimeType": string, "promptUsed": string }
  *   400:     { "error": { "code": string, "message": string } }
+ *   401:     { "error": { "code": string, "message": string } }
+ *   429:     { "error": { "code": string, "message": string } }
  *   5xx:     { "error": { "code": string, "message": string } }
  */
 
+// Cloudflare Workers Rate Limiting binding interface.
+// Provided by the platform at runtime — enforcement is per Cloudflare location,
+// not a single globally shared counter across all locations.
+interface RateLimiter {
+  limit(options: { key: string }): Promise<{ success: boolean }>;
+}
+
 export interface Env {
   OPENAI_API_KEY: string;
+  APP_TOKEN: string;
+  RATE_LIMITER: RateLimiter;
 }
 
 interface ClientRequest {
@@ -33,15 +49,26 @@ interface OpenAIResponse {
   data?: OpenAIImageItem[];
 }
 
+// ---------------------------------------------------------------------------
+// Handler
+// ---------------------------------------------------------------------------
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
 
+    // 1. Method + path
     if (request.method !== "POST" || url.pathname !== "/v1/image-generation") {
       return jsonError(404, "not_found", "Not Found");
     }
 
-    // Parse request body
+    // 2. X-App-Token authentication
+    const appToken = request.headers.get("X-App-Token");
+    if (!appToken || appToken !== env.APP_TOKEN) {
+      return jsonError(401, "unauthorized", "Unauthorized");
+    }
+
+    // 3. Parse request body
     let body: ClientRequest;
     try {
       body = (await request.json()) as ClientRequest;
@@ -49,12 +76,32 @@ export default {
       return jsonError(400, "invalid_request", "Invalid JSON body");
     }
 
-    const prompt = body.prompt?.trim();
+    // 4. Prompt validation
+    if (typeof body.prompt !== "string") {
+      return jsonError(400, "invalid_prompt", "Prompt must be a string");
+    }
+    const prompt = body.prompt.trim();
     if (!prompt) {
       return jsonError(400, "invalid_prompt", "Prompt is required and cannot be empty");
     }
+    // Check raw length before trimming to prevent padding exploits
+    if (body.prompt.length > 1000) {
+      return jsonError(400, "prompt_too_long", "Prompt must be 1000 characters or fewer");
+    }
 
-    // Forward to OpenAI
+    // 5. Rate limiting — Cloudflare Workers Rate Limiting binding (per location).
+    // env.RATE_LIMITER.limit() enforces the limit per Cloudflare location;
+    // this is NOT a single global counter. See wrangler.toml [[ratelimits]] RATE_LIMITER.
+    // CF-Connecting-IP is set by Cloudflare to the real client IP on every
+    // production request and cannot be spoofed by the client. In `wrangler dev`
+    // it may be absent; "unknown" is used as a fallback bucket for local dev only.
+    const clientIP = request.headers.get("CF-Connecting-IP") ?? "unknown";
+    const { success } = await env.RATE_LIMITER.limit({ key: clientIP });
+    if (!success) {
+      return jsonError(429, "rate_limited", "Too many requests. Please try again later.");
+    }
+
+    // 6. Forward to OpenAI
     let openaiRes: Response;
     try {
       openaiRes = await fetch("https://api.openai.com/v1/images/generations", {
@@ -78,7 +125,6 @@ export default {
 
     if (!openaiRes.ok) {
       if (openaiRes.status === 401) {
-        // Key misconfiguration — don't expose details to client
         return jsonError(500, "service_failure", "Image service configuration error");
       }
       if (openaiRes.status === 429) {

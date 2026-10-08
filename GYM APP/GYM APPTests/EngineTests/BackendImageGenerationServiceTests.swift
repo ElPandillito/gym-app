@@ -252,6 +252,38 @@ struct BackendImageGenerationServiceTests {
         }
     }
 
+    // MARK: - Phase 47B: X-App-Token header
+
+    @Test("Request includes X-App-Token header with non-empty value")
+    func request_includesAppTokenHeader() async throws {
+        var capturedRequest: URLRequest?
+        MockURLProtocol.requestHandler = { req in
+            capturedRequest = req
+            return (proxyHttpResponse(status: 200), successBody())
+        }
+        defer { MockURLProtocol.requestHandler = nil }
+
+        _ = try await makeBackendService(session: session).generate(prompt: "A bowl of rice")
+
+        let token = capturedRequest?.value(forHTTPHeaderField: "X-App-Token")
+        #expect(token != nil, "X-App-Token header must be present")
+        #expect(!(token ?? "").isEmpty, "X-App-Token value must not be empty")
+    }
+
+    @Test("X-App-Token value matches AppConfiguration.imageGenerationProxyToken")
+    func request_appTokenMatchesConfiguration() async throws {
+        var capturedToken: String?
+        MockURLProtocol.requestHandler = { req in
+            capturedToken = req.value(forHTTPHeaderField: "X-App-Token")
+            return (proxyHttpResponse(status: 200), successBody())
+        }
+        defer { MockURLProtocol.requestHandler = nil }
+
+        _ = try await makeBackendService(session: session).generate(prompt: "A salad")
+
+        #expect(capturedToken == AppConfiguration.imageGenerationProxyToken)
+    }
+
     // MARK: - Cancellation
 
     @Test("Cancelling the Task propagates as CancellationError or serviceFailure")

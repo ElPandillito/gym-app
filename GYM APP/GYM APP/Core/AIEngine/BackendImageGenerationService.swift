@@ -60,6 +60,7 @@ struct BackendImageGenerationService: ImageGenerationServiceProtocol, Sendable {
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(AppConfiguration.imageGenerationProxyToken, forHTTPHeaderField: "X-App-Token")
         request.httpBody = try JSONEncoder().encode(
             BackendImageRequest(prompt: prompt, requestID: UUID().uuidString)
         )
