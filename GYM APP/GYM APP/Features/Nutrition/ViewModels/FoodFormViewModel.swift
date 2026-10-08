@@ -30,6 +30,7 @@ final class FoodFormViewModel {
     var category: FoodCategory = .proteinas
     var brand: String = ""
     var tagsText: String = ""
+    var barcode: String = ""
 
     // Macros per 100 g (stored as text for TextField binding)
     var caloriesText: String = ""
@@ -71,12 +72,14 @@ final class FoodFormViewModel {
 
     // MARK: - Init
 
-    init(mode: Mode, context: ModelContext) {
+    init(mode: Mode, context: ModelContext, prefillBarcode: String? = nil) {
         self.mode = mode
         self.repository = FoodRepository.make(context: context)
 
         if case .edit(let food) = mode {
             loadFields(from: food)
+        } else if let prefillBarcode {
+            barcode = prefillBarcode
         }
     }
 
@@ -88,6 +91,7 @@ final class FoodFormViewModel {
         category = food.category
         brand    = food.brand ?? ""
         tagsText = food.tags.joined(separator: ", ")
+        barcode  = food.barcode ?? ""
 
         caloriesText = food.calories.map      { fmt($0) } ?? ""
         proteinText  = food.protein.map       { fmt($0) } ?? ""
@@ -147,6 +151,9 @@ final class FoodFormViewModel {
         let brandVal: String? = brand.trimmingCharacters(in: .whitespaces).isEmpty
             ? nil
             : brand.trimmingCharacters(in: .whitespaces)
+        let barcodeVal: String? = barcode.trimmingCharacters(in: .whitespaces).isEmpty
+            ? nil
+            : barcode.trimmingCharacters(in: .whitespaces)
 
         switch mode {
         case .create:
@@ -155,7 +162,7 @@ final class FoodFormViewModel {
                 food, name: name, kind: kind, category: category,
                 calories: calories, protein: protein, carbohydrates: carbs,
                 fat: fat, fiber: fiber, servingSize: size,
-                servingUnit: unit, brand: brandVal, tags: tags
+                servingUnit: unit, brand: brandVal, tags: tags, barcode: barcodeVal
             )
             if let imageData = pendingImageData {
                 try repository.setImage(data: imageData, for: food)
@@ -167,7 +174,7 @@ final class FoodFormViewModel {
                 food, name: name, kind: kind, category: category,
                 calories: calories, protein: protein, carbohydrates: carbs,
                 fat: fat, fiber: fiber, servingSize: size,
-                servingUnit: unit, brand: brandVal, tags: tags
+                servingUnit: unit, brand: brandVal, tags: tags, barcode: barcodeVal
             )
             if let imageData = pendingImageData {
                 try repository.setImage(data: imageData, for: food)

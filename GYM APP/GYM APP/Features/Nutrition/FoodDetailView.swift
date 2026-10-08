@@ -185,8 +185,11 @@ struct FoodDetailView: View {
                 }
             }
 
-            // "Generar con IA" button — bottom trailing, hidden while generating
-            if food.source != .system, let vm = imageViewModel, !vm.isGenerating {
+            // "Generar con IA" button — shown only when the image proxy is active
+            if AppConfiguration.imageGenerationProxyURL != nil,
+               food.source != .system,
+               let vm = imageViewModel,
+               !vm.isGenerating {
                 VStack {
                     Spacer()
                     HStack {

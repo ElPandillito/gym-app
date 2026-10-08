@@ -17,6 +17,11 @@ struct NutritionView: View {
     @State private var selectedFood: Food?
     @State private var isShowingCreateForm = false
     @State private var isShowingPreparedForm = false
+    #if os(iOS)
+    @State private var isShowingScanner = false
+    @State private var isShowingScannedForm = false
+    @State private var scannedBarcode: String?
+    #endif
 
     private let columns = [
         GridItem(.flexible(), spacing: AppSpacing.md),
@@ -40,6 +45,23 @@ struct NutritionView: View {
         .sheet(isPresented: $isShowingPreparedForm) {
             PreparedFoodFormView(mode: .create, context: modelContext)
         }
+        #if os(iOS)
+        .fullScreenCover(isPresented: $isShowingScanner) {
+            BarcodeScannerView { result in
+                isShowingScanner = false
+                switch result {
+                case .foodFound(let food):
+                    selectedFood = food
+                case .barcodeNotFound(let barcode):
+                    scannedBarcode = barcode
+                    isShowingScannedForm = true
+                }
+            }
+        }
+        .sheet(isPresented: $isShowingScannedForm) {
+            FoodFormView(mode: .create, context: modelContext, prefillBarcode: scannedBarcode)
+        }
+        #endif
         .onChange(of: foods) { _, newFoods in
             viewModel.update(foods: newFoods)
         }
@@ -62,6 +84,15 @@ struct NutritionView: View {
         .navigationTitle("Nutrición")
         .searchable(text: $viewModel.searchText, prompt: "Buscar alimento...")
         .toolbar {
+            #if os(iOS)
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    isShowingScanner = true
+                } label: {
+                    Image(systemName: "barcode.viewfinder")
+                }
+            }
+            #endif
             ToolbarItem(placement: .primaryAction) {
                 Menu {
                     Button {

@@ -196,7 +196,7 @@ final class PreparedFoodFormViewModel {
                 food, name: trimmedName, kind: .preparedFood, category: category,
                 calories: total.calories, protein: total.protein,
                 carbohydrates: total.carbohydrates, fat: total.fat, fiber: total.fiber,
-                servingSize: nil, servingUnit: nil, brand: brandVal, tags: tags
+                servingSize: nil, servingUnit: nil, brand: brandVal, tags: tags, barcode: food.barcode
             )
             try ingredientRepository.removeAll(from: food)
             for (i, entry) in pendingIngredients.enumerated() {

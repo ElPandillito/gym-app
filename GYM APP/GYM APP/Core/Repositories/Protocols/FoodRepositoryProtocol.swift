@@ -30,7 +30,8 @@ protocol FoodRepositoryProtocol {
         servingSize: Double?,
         servingUnit: FoodUnit?,
         brand: String?,
-        tags: [String]
+        tags: [String],
+        barcode: String?
     ) throws
 
     /// Deletes a Food and its associated image.
@@ -58,6 +59,9 @@ protocol FoodRepositoryProtocol {
 
     /// Fetches Foods in a given category, sorted by name.
     func fetch(category: FoodCategory) throws -> [Food]
+
+    /// Fetches the Food whose barcode matches exactly, if any.
+    func fetch(barcode: String) throws -> Food?
 
     /// Saves raw image data to disk, creates a FoodImage, and links it to the food.
     /// Replaces any existing image.

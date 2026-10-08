@@ -50,7 +50,8 @@ struct FoodRepository: FoodRepositoryProtocol {
         servingSize: Double?,
         servingUnit: FoodUnit?,
         brand: String?,
-        tags: [String]
+        tags: [String],
+        barcode: String?
     ) throws {
         food.name          = name
         food.kind          = kind
@@ -64,6 +65,7 @@ struct FoodRepository: FoodRepositoryProtocol {
         food.servingUnit   = servingUnit
         food.brand         = brand
         food.tags          = tags
+        food.barcode       = barcode
         food.updatedAt     = Date()
         try context.save()
     }
@@ -149,6 +151,13 @@ struct FoodRepository: FoodRepositoryProtocol {
             sortBy: [SortDescriptor(\.name)]
         )
         return try context.fetch(descriptor)
+    }
+
+    func fetch(barcode: String) throws -> Food? {
+        let descriptor = FetchDescriptor<Food>(
+            predicate: #Predicate { $0.barcode == barcode }
+        )
+        return try context.fetch(descriptor).first
     }
 
     // MARK: - Image (standard — inserts + saves immediately)

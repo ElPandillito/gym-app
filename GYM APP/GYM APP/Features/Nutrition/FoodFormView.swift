@@ -24,8 +24,8 @@ struct FoodFormView: View {
     @State private var showCamera = false
     #endif
 
-    init(mode: FoodFormViewModel.Mode, context: ModelContext) {
-        _viewModel = State(initialValue: FoodFormViewModel(mode: mode, context: context))
+    init(mode: FoodFormViewModel.Mode, context: ModelContext, prefillBarcode: String? = nil) {
+        _viewModel = State(initialValue: FoodFormViewModel(mode: mode, context: context, prefillBarcode: prefillBarcode))
     }
 
     var body: some View {
@@ -197,6 +197,11 @@ struct FoodFormView: View {
             TextField("Marca (opcional)", text: $viewModel.brand)
 
             TextField("Etiquetas (separadas por coma)", text: $viewModel.tagsText)
+
+            TextField("Código de barras (opcional)", text: $viewModel.barcode)
+                #if os(iOS)
+                .keyboardType(.numberPad)
+                #endif
         }
     }
 
