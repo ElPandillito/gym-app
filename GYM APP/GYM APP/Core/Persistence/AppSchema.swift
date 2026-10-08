@@ -26,6 +26,9 @@ import SwiftData
 /// History of Optional additions (all lightweight — no migration plan needed):
 ///   v1.0.1 (Phase 37B): FoodImage gained imageOriginRaw, aiGenerationStateRaw
 ///   v1.0.2 (Phase 39):  FoodImage gained promptUsed (stores the prompt sent to the AI provider)
+///   v1.0.2 (undocumented at the time): NutritionPlan gained targetCalories, targetProtein,
+///     targetCarbohydrates, targetFat, targetFiber — added without a version bump. Documented
+///     retroactively here at Phase 50; no new fields were introduced in that phase.
 enum GYMAppSchemaV1: VersionedSchema {
     static var versionIdentifier = Schema.Version(1, 0, 2)
 

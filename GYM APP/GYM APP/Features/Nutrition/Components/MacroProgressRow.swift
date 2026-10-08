@@ -20,14 +20,16 @@ struct MacroProgressRow: View {
     let unit: String
     let color: Color
 
-    private var ratio: Double {
+    // Internal (not private) so logic is directly unit-testable via @testable import,
+    // without needing to render the view.
+    var ratio: Double {
         guard target > 0 else { return 0 }
         return current / target
     }
 
-    private var percentage: Double { ratio * 100 }
+    var percentage: Double { ratio * 100 }
 
-    private var barColor: Color {
+    var barColor: Color {
         guard target > 0 else { return AppColors.tertiaryText }
         switch percentage {
         case ..<90:    return AppColors.error
@@ -51,16 +53,16 @@ struct MacroProgressRow: View {
 
                 if target > 0 {
                     Text(String(format: "%.0f / %.0f %@", current, target, unit))
-                        .font(.caption)
+                        .font(AppTypography.caption)
                         .foregroundStyle(AppColors.secondaryText)
 
                     Text(String(format: "%.0f%%", percentage))
-                        .font(.caption.weight(.semibold))
+                        .font(AppTypography.caption.weight(.semibold))
                         .foregroundStyle(barColor)
                         .frame(minWidth: 38, alignment: .trailing)
                 } else {
                     Text(String(format: "%.0f %@", current, unit))
-                        .font(.caption)
+                        .font(AppTypography.caption)
                         .foregroundStyle(AppColors.secondaryText)
                 }
             }
